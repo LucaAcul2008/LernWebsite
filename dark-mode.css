@@ -1,0 +1,282 @@
+/**
+ * Dark Mode Theme for Study Companion
+ * Applies dark theme to all elements when dark mode is active
+ */
+
+ :root {
+    --dark-bg-primary: #121212;
+    --dark-bg-secondary: #1e1e1e;
+    --dark-bg-tertiary: #2d2d2d;
+    --dark-text-primary: #e0e0e0;
+    --dark-text-secondary: #b0b0b0;
+    --dark-accent-primary: #4cc9f0;
+    --dark-accent-secondary: #4361ee;
+    --dark-border: #444;
+    --dark-shadow: rgba(0, 0, 0, 0.3);
+    --dark-hover: #333;
+    --dark-danger: #cf6679;
+    --dark-warning: #ffd166;
+    --dark-success: #06d6a0;
+    --dark-info: #118ab2;
+  }
+  
+  body.dark-mode {
+    background-color: var(--dark-bg-primary);
+    color: var(--dark-text-primary);
+  }
+  
+  /* Sidebar */
+  body.dark-mode .sidebar {
+    background-color: var(--dark-bg-secondary);
+    border-right: 1px solid var(--dark-border);
+  }
+  
+  body.dark-mode .nav-links li {
+    color: var(--dark-text-secondary);
+  }
+  
+  body.dark-mode .nav-links li:hover {
+    background-color: var(--dark-hover);
+  }
+  
+  body.dark-mode .nav-links li.active {
+    color: var(--dark-accent-primary);
+    background-color: var(--dark-bg-tertiary);
+  }
+  
+  body.dark-mode .nav-links li::before {
+    background-color: var(--dark-accent-primary);
+  }
+  
+  /* Cards and containers */
+  body.dark-mode .stat-card, 
+  body.dark-mode .material-card,
+  body.dark-mode .exam-card,
+  body.dark-mode .analytics-card,
+  body.dark-mode .timer-card,
+  body.dark-mode .agenda-card {
+    background-color: var(--dark-bg-secondary);
+    box-shadow: 0 4px 6px var(--dark-shadow);
+  }
+  
+  body.dark-mode .stat-card:hover, 
+  body.dark-mode .material-card:hover {
+    box-shadow: 0 8px 12px var(--dark-shadow);
+  }
+  
+  /* Forms and inputs */
+  body.dark-mode input,
+  body.dark-mode textarea,
+  body.dark-mode select {
+    background-color: var(--dark-bg-tertiary);
+    color: var(--dark-text-primary);
+    border: 1px solid var(--dark-border);
+  }
+  
+  body.dark-mode input:focus,
+  body.dark-mode textarea:focus,
+  body.dark-mode select:focus {
+    border-color: var(--dark-accent-primary);
+  }
+  
+  /* Upload area */
+  body.dark-mode .upload-area {
+    background-color: var(--dark-bg-tertiary);
+    border: 2px dashed var(--dark-border);
+  }
+  
+  body.dark-mode .upload-area:hover,
+  body.dark-mode .upload-area.drag-over {
+    border-color: var(--dark-accent-primary);
+  }
+  
+  /* Buttons */
+  body.dark-mode .btn-primary {
+    background-color: var(--dark-accent-primary);
+  }
+  
+  body.dark-mode .btn-secondary {
+    background-color: var(--dark-bg-tertiary);
+    color: var(--dark-text-primary);
+  }
+  
+  body.dark-mode .btn-danger {
+    background-color: var(--dark-danger);
+  }
+  
+  /* Tabs */
+  body.dark-mode .material-tabs .tab {
+    background-color: var(--dark-bg-tertiary);
+    color: var(--dark-text-secondary);
+  }
+  
+  body.dark-mode .material-tabs .tab.active {
+    background-color: var(--dark-accent-primary);
+    color: #fff;
+  }
+  
+  /* Progress bars */
+  body.dark-mode .progress-bar {
+    background-color: var(--dark-bg-tertiary);
+  }
+  
+  body.dark-mode .progress {
+    background-color: var(--dark-accent-primary);
+  }
+  
+  /* Material content */
+  body.dark-mode .tab-pane {
+    background-color: var(--dark-bg-secondary);
+  }
+  
+  body.dark-mode #notes-editor {
+    background-color: var(--dark-bg-tertiary);
+    color: var(--dark-text-primary);
+  }
+  
+  /* Quiz elements */
+  body.dark-mode .question-container {
+    background-color: var(--dark-bg-secondary);
+  }
+  
+  body.dark-mode .option {
+    background-color: var(--dark-bg-tertiary);
+  }
+  
+  body.dark-mode .option.selected {
+    background-color: var(--dark-accent-secondary);
+    color: #fff;
+  }
+  
+  body.dark-mode .option.correct {
+    background-color: var(--dark-success);
+    color: #000;
+  }
+  
+  body.dark-mode .option.incorrect {
+    background-color: var(--dark-danger);
+    color: #fff;
+  }
+  
+  /* Chat elements */
+  body.dark-mode .chat-container {
+    background-color: var(--dark-bg-secondary);
+  }
+  
+  body.dark-mode .message-bubble {
+    background-color: var(--dark-bg-tertiary);
+  }
+  
+  body.dark-mode .user-message .message-bubble {
+    background-color: var(--dark-accent-secondary);
+  }
+  
+  body.dark-mode .chat-input textarea {
+    background-color: var(--dark-bg-tertiary);
+    border: 1px solid var(--dark-border);
+  }
+  
+  /* Modals */
+  body.dark-mode .modal-content {
+    background-color: var(--dark-bg-secondary);
+    box-shadow: 0 8px 16px var(--dark-shadow);
+  }
+  
+  body.dark-mode .modal-header {
+    border-bottom: 1px solid var(--dark-border);
+  }
+  
+  body.dark-mode .modal-footer {
+    border-top: 1px solid var(--dark-border);
+  }
+  
+  /* Notifications */
+  body.dark-mode .notification {
+    background-color: var(--dark-bg-secondary);
+    box-shadow: 0 4px 12px var(--dark-shadow);
+  }
+  
+  body.dark-mode .notification.success {
+    border-left: 4px solid var(--dark-success);
+  }
+  
+  body.dark-mode .notification.error {
+    border-left: 4px solid var(--dark-danger);
+  }
+  
+  body.dark-mode .notification.warning {
+    border-left: 4px solid var(--dark-warning);
+  }
+  
+  body.dark-mode .notification.info {
+    border-left: 4px solid var(--dark-info);
+  }
+  
+  /* PDF viewer */
+  body.dark-mode .pdf-page {
+    background-color: var(--dark-bg-tertiary);
+    box-shadow: 0 2px 8px var(--dark-shadow);
+  }
+  
+  /* Agenda items */
+  body.dark-mode .agenda-day {
+    border-bottom: 1px solid var(--dark-border);
+  }
+  
+  body.dark-mode .agenda-day h3 {
+    color: var(--dark-accent-primary);
+  }
+  
+  /* Empty states */
+  body.dark-mode .empty-state {
+    color: var(--dark-text-secondary);
+  }
+  
+  /* Flashcards */
+  body.dark-mode .flashcard-set {
+    background-color: var(--dark-bg-secondary);
+  }
+  
+  body.dark-mode .mastery-bar {
+    background-color: var(--dark-bg-tertiary);
+  }
+  
+  body.dark-mode .mastery-progress {
+    background-color: var(--dark-accent-primary);
+  }
+  
+  /* Switch for dark mode toggle */
+  .theme-toggle {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+  }
+  
+  .theme-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  body.dark-mode .theme-toggle .fa-sun {
+    display: inline-block;
+  }
+  
+  body.dark-mode .theme-toggle .fa-moon {
+    display: none;
+  }
+  
+  .theme-toggle .fa-sun {
+    display: none;
+  }
+  
+  .theme-toggle .fa-moon {
+    display: inline-block;
+  }
+
+ 
+  
+  
