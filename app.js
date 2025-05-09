@@ -162,12 +162,9 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
     
-      this.currentMaterial = material; // Set currentMaterial
+      this.currentMaterial = material; 
+      this.showPage("material-viewer"); 
     
-      // Show the material page first to ensure elements exist
-      this.showPage("material-viewer"); // Make sure this ID matches your HTML
-    
-      // Update material title
       const materialTitleEl = document.getElementById("material-title");
       if (materialTitleEl) {
         materialTitleEl.textContent = material.name;
@@ -175,18 +172,16 @@ document.addEventListener("DOMContentLoaded", function () {
         console.warn("Element 'material-title' nicht gefunden.");
       }
     
-      // Update button state based on completion
       const completeBtn = document.getElementById("mark-completed-btn");
       if (completeBtn) {
         completeBtn.innerHTML = material.completed
           ? '<i class="fas fa-times"></i> Als unvollständig markieren'
           : '<i class="fas fa-check"></i> Als abgeschlossen markieren';
-        completeBtn.disabled = false; // Ensure button is enabled
+        completeBtn.disabled = false; 
       } else {
         console.warn("Element 'mark-completed-btn' nicht gefunden.");
       }
     
-      // Load notes
       const notesEditor = document.getElementById("notes-editor");
       if (notesEditor) {
         notesEditor.value = material.notes || "";
@@ -194,45 +189,82 @@ document.addEventListener("DOMContentLoaded", function () {
         console.warn("Element 'notes-editor' nicht gefunden.");
       }
     
-      // Check if summary exists and update UI
-      const summaryTextElement = document.getElementById("summary-text");
-      const summaryContentContainer = document.getElementById("summary-content");
-      const summaryTabButton = document.querySelector('#material-viewer .tabs .tab[data-tab="summary"]'); // Präziserer Selektor
+      // Zusammenfassung anzeigen oder "Erstellen"-Button
+      const summaryTextContainerEl = document.getElementById("summary-text-container"); // Ziel für Zusammenfassung oder Button
+      const summaryTabButton = document.querySelector('#material-viewer .tabs .tab[data-tab="summary"]');
+      const statusEl = document.getElementById("summary-status"); // Für Statusmeldungen
 
-      if (summaryTextElement && summaryContentContainer) {
-        if (material.summary) {
-          summaryTextElement.innerHTML = this.formatChatResponse ? this.formatChatResponse(material.summary) : material.summary;
-          if (summaryTabButton) { // HIER DIE PRÜFUNG HINZUFÜGEN
-            summaryTabButton.classList.add("has-content");
-          } else {
-            console.warn("Summary-Tab-Button nicht gefunden, um 'has-content' zu setzen.");
-          }
+      if (summaryTextContainerEl) {
+        // Ladeindikator für Zusammenfassung anzeigen
+        summaryTextContainerEl.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Zusammenfassung wird geladen...</div>';
+        if (statusEl) statusEl.innerHTML = "Lade Zusammenfassung...";
+
+        if (material.summary && material.summary.trim() !== "") { // Wenn Zusammenfassung bereits im Speicher ist
+          console.log("openMaterial: Verwende Zusammenfassung aus dem Speicher.");
+          summaryTextContainerEl.innerHTML = this.formatChatResponse ? this.formatChatResponse(material.summary) : material.summary;
+          if (summaryTabButton) summaryTabButton.classList.add("has-content");
+          if (statusEl) statusEl.innerHTML = "✓ Zusammenfassung geladen";
         } else {
-          summaryTextElement.innerHTML = `
-            <div class="empty-state">
-              <p>Noch keine Zusammenfassung vorhanden.</p>
-              <button id="generate-summary-empty-state-btn" class="btn-primary">
-                <i class="fas fa-magic"></i> Zusammenfassung erstellen
-              </button>
-            </div>
-          `;
-          if (summaryTabButton) { // HIER DIE PRÜFUNG HINZUFÜGEN
-            summaryTabButton.classList.remove("has-content");
-          } else {
-            console.warn("Summary-Tab-Button nicht gefunden, um 'has-content' zu entfernen.");
-          }
-          const genSummaryEmptyStateBtn = document.getElementById('generate-summary-empty-state-btn');
-          if (genSummaryEmptyStateBtn) {
-            const newBtn = genSummaryEmptyStateBtn.cloneNode(true);
-            genSummaryEmptyStateBtn.parentNode.replaceChild(newBtn, genSummaryEmptyStateBtn);
-            newBtn.addEventListener("click", () => this.generateSummary(material));
-          }
+          // Zusammenfassung ist nicht im Speicher, versuche aus IndexedDB zu laden
+          console.log("openMaterial: Versuche Zusammenfassung aus IndexedDB zu laden.");
+          this.getSummaryFromIndexedDB(material.id).then(savedSummary => {
+            if (savedSummary) {
+              console.log("openMaterial: Zusammenfassung aus IndexedDB geladen.");
+              material.summary = savedSummary; // In den Speicher laden für zukünftige Zugriffe
+              summaryTextContainerEl.innerHTML = this.formatChatResponse ? this.formatChatResponse(savedSummary) : savedSummary;
+              if (summaryTabButton) summaryTabButton.classList.add("has-content");
+              if (statusEl) statusEl.innerHTML = "✓ Zusammenfassung aus Speicher geladen";
+            } else {
+              // Keine Zusammenfassung im Speicher und nicht in IndexedDB -> "Erstellen"-Button anzeigen
+              console.log("openMaterial: Keine Zusammenfassung gefunden, zeige 'Erstellen'-Button.");
+              summaryTextContainerEl.innerHTML = `
+                <div class="empty-state">
+                  <p>Noch keine Zusammenfassung für dieses Material vorhanden.</p>
+                  <button id="create-summary-for-current-material-btn" class="btn-primary">
+                    <i class="fas fa-magic"></i> Jetzt Zusammenfassung erstellen
+                  </button>
+                </div>
+              `;
+              if (summaryTabButton) summaryTabButton.classList.remove("has-content");
+              if (statusEl) statusEl.innerHTML = "Keine Zusammenfassung vorhanden.";
+              
+              const createSummaryBtn = document.getElementById('create-summary-for-current-material-btn');
+              if (createSummaryBtn) {
+                const newBtn = createSummaryBtn.cloneNode(true);
+                createSummaryBtn.parentNode.replaceChild(newBtn, createSummaryBtn);
+                newBtn.addEventListener("click", () => {
+                    if (this.currentMaterial) {
+                        this.generateSummary(this.currentMaterial);
+                    }
+                });
+              }
+            }
+          }).catch(err => {
+            console.error("Fehler beim Laden der Zusammenfassung aus IndexedDB in openMaterial:", err);
+            summaryTextContainerEl.innerHTML = `
+              <div class="empty-state error-message">
+                <p>Fehler beim Laden der gespeicherten Zusammenfassung.</p>
+                <button id="create-summary-for-current-material-btn" class="btn-primary">
+                  <i class="fas fa-magic"></i> Neue Zusammenfassung erstellen
+                </button>
+              </div>
+            `;
+            if (summaryTabButton) summaryTabButton.classList.remove("has-content");
+            if (statusEl) statusEl.innerHTML = "❌ Fehler beim Laden der Zusammenfassung.";
+            const createSummaryBtn = document.getElementById('create-summary-for-current-material-btn');
+            if (createSummaryBtn) {
+                const newBtn = createSummaryBtn.cloneNode(true);
+                createSummaryBtn.parentNode.replaceChild(newBtn, createSummaryBtn);
+                newBtn.addEventListener("click", () => {
+                    if (this.currentMaterial) { this.generateSummary(this.currentMaterial); }
+                });
+            }
+          });
         }
       } else {
-        console.warn("Elemente 'summary-text' oder 'summary-content' nicht gefunden.");
+        console.warn("Element 'summary-text-container' nicht gefunden in openMaterial.");
       }
     
-      // Show loading state for PDF
       const pdfContainer = document.getElementById("pdf-renderer");
       if (pdfContainer) {
         pdfContainer.innerHTML =
@@ -254,27 +286,28 @@ document.addEventListener("DOMContentLoaded", function () {
           "PDF-Datei nicht verfügbar. Bitte lade die PDF erneut hoch.",
           "error"
         );
-        return;
+        // Wichtig: Hier nicht einfach returnen, wenn PDF nicht da ist,
+        // da Zusammenfassung und Notizen trotzdem funktionieren sollen.
+        // Der PDF-Tab wird dann die Fehlermeldung anzeigen.
       }
 
-      // Die PDF-Rendering-Logik wird von pdf-fix.js übernommen,
-      // das die renderPdf-Funktion auf window.app patcht.
-      // Stelle sicher, dass this.renderPdf hier die gepatchte Version ist.
-      if (typeof this.renderPdf === 'function') {
-        this.renderPdf(material); // Diese Funktion sollte die Daten aus der DB laden und rendern
-      } else {
+      // PDF-Rendering nur starten, wenn die Datei als verfügbar markiert ist
+      // und die renderPdf Funktion existiert.
+      if (material.fileAvailable !== false && typeof this.renderPdf === 'function') {
+        this.renderPdf(material);
+      } else if (material.fileAvailable === false) {
+        console.log("PDF nicht verfügbar, Rendering wird übersprungen.");
+      } else if (typeof this.renderPdf !== 'function') {
           console.error("this.renderPdf ist keine Funktion. pdf-fix.js hat sie nicht korrekt gepatcht.");
           if (pdfContainer) {
             pdfContainer.innerHTML = `<div class="error-message"><p>Fehler beim Initialisieren der PDF-Anzeige.</p></div>`;
           }
       }
         
-      // Activate the PDF tab by default
-      // Stelle sicher, dass activateTab existiert und korrekt funktioniert
       if (typeof this.activateTab === 'function') {
-        this.activateTab('pdf');
+        this.activateTab('pdf'); // PDF-Tab standardmäßig aktivieren
       } else {
-        console.warn("this.activateTab ist keine Funktion.");
+        console.warn("this.activateTab ist keine Funktion in openMaterial.");
       }
     },
 
