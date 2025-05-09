@@ -88,25 +88,26 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     },
 
-    
-
-    // Save PDF data to IndexedDB
+    // Update your savePdfToIndexedDB function
     savePdfToIndexedDB: function (materialId, fileData) {
-      return this.initIndexedDB().then(() => {
+      console.log("Saving PDF to IndexedDB:", materialId);
+      return this.initIndexedDB().then((db) => {
         return new Promise((resolve, reject) => {
           try {
-            const transaction = this.db.transaction(["pdfs"], "readwrite"); // Changed from pdfFiles to pdfs
-            const store = transaction.objectStore("pdfs"); // Changed from pdfFiles to pdfs
+            const transaction = db.transaction(["pdfs"], "readwrite");
+            const store = transaction.objectStore("pdfs");
 
+            console.log("Putting PDF data in store, size:", fileData.length);
             const request = store.put({ id: materialId, data: fileData });
 
-            request.onsuccess = () => resolve(true);
+            request.onsuccess = () => {
+              console.log("PDF saved successfully to IndexedDB");
+              resolve(true);
+            };
+
             request.onerror = (event) => {
-              console.error(
-                "Error saving PDF to IndexedDB:",
-                event.target?.error || "Unknown error"
-              );
-              reject(event.target?.error || new Error("Failed to save PDF"));
+              console.error("Error saving PDF:", event.target.error);
+              reject(event.target.error);
             };
           } catch (error) {
             console.error("Transaction error in savePdfToIndexedDB:", error);
@@ -115,300 +116,257 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       });
     },
-    // Load PDF data from IndexedDB
-    // In your app.js file
+
+    // Update your getPdfFromIndexedDB function
     getPdfFromIndexedDB: function (materialId) {
-      return new Promise((resolve, reject) => {
-        if (!this.db) {
-          reject(new Error("Database not initialized"));
-          return;
-        }
+      console.log("Getting PDF from IndexedDB:", materialId);
+      return this.initIndexedDB().then((db) => {
+        return new Promise((resolve, reject) => {
+          try {
+            const transaction = db.transaction(["pdfs"], "readonly");
+            const store = transaction.objectStore("pdfs");
+            const request = store.get(materialId);
 
-        try {
-          const transaction = this.db.transaction(["pdfs"], "readonly");
-          const store = transaction.objectStore("pdfs");
-          const request = store.get(materialId);
+            request.onsuccess = (event) => {
+              const result = event.target.result;
+              if (result && result.data) {
+                console.log(
+                  "PDF retrieved successfully, size:",
+                  result.data.length
+                );
+                resolve(result.data);
+              } else {
+                console.warn("PDF not found in IndexedDB:", materialId);
+                resolve(null);
+              }
+            };
 
-          request.onerror = (event) => {
-            console.error("Error fetching PDF:", event.target.error);
-            reject(event.target.error || new Error("Failed to fetch PDF data"));
-          };
-
-          request.onsuccess = (event) => {
-            const result = event.target.result;
-            if (result && result.data) {
-              resolve(result.data);
-            } else {
-              console.warn("PDF data not found for ID:", materialId);
-              reject(new Error("PDF not found"));
-            }
-          };
-        } catch (error) {
-          console.error("Transaction error:", error);
-          reject(error);
-        }
+            request.onerror = (event) => {
+              console.error("Error retrieving PDF:", event.target.error);
+              reject(event.target.error);
+            };
+          } catch (error) {
+            console.error("Transaction error in getPdfFromIndexedDB:", error);
+            reject(error);
+          }
+        });
       });
     },
 
-    // Then update your openMaterial function
     openMaterial: function (materialId) {
-      // First ensure material exists
+      console.log("Opening material:", materialId);
       const material = this.materials.find((m) => m.id === materialId);
       if (!material) {
+        console.error("Material not found:", materialId);
         this.showNotification("Error", "Material nicht gefunden", "error");
         return;
       }
-
-      this.currentMaterial = material;
-      document.getElementById("material-title").textContent = material.name;
-
+    
+      this.currentMaterial = material; // Set currentMaterial
+    
+      // Show the material page first to ensure elements exist
+      this.showPage("material-viewer"); // Make sure this ID matches your HTML
+    
+      // Update material title
+      const materialTitleEl = document.getElementById("material-title");
+      if (materialTitleEl) {
+        materialTitleEl.textContent = material.name;
+      } else {
+        console.warn("Element 'material-title' nicht gefunden.");
+      }
+    
       // Update button state based on completion
       const completeBtn = document.getElementById("mark-completed-btn");
       if (completeBtn) {
         completeBtn.innerHTML = material.completed
           ? '<i class="fas fa-times"></i> Als unvollständig markieren'
           : '<i class="fas fa-check"></i> Als abgeschlossen markieren';
+        completeBtn.disabled = false; // Ensure button is enabled
+      } else {
+        console.warn("Element 'mark-completed-btn' nicht gefunden.");
       }
+    
+      // Load notes
+      const notesEditor = document.getElementById("notes-editor");
+      if (notesEditor) {
+        notesEditor.value = material.notes || "";
+      } else {
+        console.warn("Element 'notes-editor' nicht gefunden.");
+      }
+    
+      // Check if summary exists and update UI
+      const summaryTextElement = document.getElementById("summary-text");
+      const summaryContentContainer = document.getElementById("summary-content");
+      const summaryTabButton = document.querySelector('#material-viewer .tabs .tab[data-tab="summary"]'); // Präziserer Selektor
 
-      this.showPage("material-viewer");
-
-      // Show loading state immediately
+      if (summaryTextElement && summaryContentContainer) {
+        if (material.summary) {
+          summaryTextElement.innerHTML = this.formatChatResponse ? this.formatChatResponse(material.summary) : material.summary;
+          if (summaryTabButton) { // HIER DIE PRÜFUNG HINZUFÜGEN
+            summaryTabButton.classList.add("has-content");
+          } else {
+            console.warn("Summary-Tab-Button nicht gefunden, um 'has-content' zu setzen.");
+          }
+        } else {
+          summaryTextElement.innerHTML = `
+            <div class="empty-state">
+              <p>Noch keine Zusammenfassung vorhanden.</p>
+              <button id="generate-summary-empty-state-btn" class="btn-primary">
+                <i class="fas fa-magic"></i> Zusammenfassung erstellen
+              </button>
+            </div>
+          `;
+          if (summaryTabButton) { // HIER DIE PRÜFUNG HINZUFÜGEN
+            summaryTabButton.classList.remove("has-content");
+          } else {
+            console.warn("Summary-Tab-Button nicht gefunden, um 'has-content' zu entfernen.");
+          }
+          const genSummaryEmptyStateBtn = document.getElementById('generate-summary-empty-state-btn');
+          if (genSummaryEmptyStateBtn) {
+            const newBtn = genSummaryEmptyStateBtn.cloneNode(true);
+            genSummaryEmptyStateBtn.parentNode.replaceChild(newBtn, genSummaryEmptyStateBtn);
+            newBtn.addEventListener("click", () => this.generateSummary(material));
+          }
+        }
+      } else {
+        console.warn("Elemente 'summary-text' oder 'summary-content' nicht gefunden.");
+      }
+    
+      // Show loading state for PDF
       const pdfContainer = document.getElementById("pdf-renderer");
       if (pdfContainer) {
         pdfContainer.innerHTML =
           '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i><p>PDF wird geladen...</p></div>';
+      } else {
+        console.warn("Element 'pdf-renderer' nicht gefunden.");
       }
-
-      // Load notes
-      document.getElementById("notes-editor").value = material.notes || "";
-
-      // Check if summary exists and update UI
-      console.log("Material has summary?", !!material.summary);
-      const summaryText = document.getElementById("summary-text");
-      if (summaryText) {
-        if (material.summary) {
-          summaryText.innerHTML =
-            typeof marked !== "undefined"
-              ? marked.parse(material.summary)
-              : material.summary;
-        } else {
-          summaryText.innerHTML = `
-        <div class="empty-state">
-          <p>Noch keine Zusammenfassung vorhanden.</p>
-          <button id="generate-summary-btn" class="btn-primary">
-            <i class="fas fa-magic"></i> Zusammenfassung erstellen
-          </button>
-        </div>
-      `;
-
-          // Add event listener for the generate button
-          const genSummaryBtn = document.getElementById("generate-summary-btn");
-          if (genSummaryBtn) {
-            genSummaryBtn.addEventListener("click", () =>
-              this.generateSummary(material)
-            );
-          }
-        }
-      }
-
-      // Load PDF data
-      this.getPdfFromIndexedDB(material.id)
-        .then((fileData) => {
-          if (!fileData) {
-            throw new Error("No PDF data available");
-          }
-          material.fileData = fileData;
-          this.renderPdf(material);
-        })
-        .catch((err) => {
-          console.error("Error retrieving PDF data:", err);
-          if (pdfContainer) {
+    
+      if (material.fileAvailable === false) {
+        if (pdfContainer) {
             pdfContainer.innerHTML = `
-          <div class="error-message">
-            <i class="fas fa-exclamation-triangle"></i>
-            <p>Fehler beim Öffnen des Dokuments: ${
-              err.message || "Unbekannter Fehler"
-            }</p>
-          </div>
-        `;
+              <div class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>PDF-Datei nicht im Speicher verfügbar. Bitte lade die PDF erneut hoch.</p>
+              </div>`;
+        }
+        this.showNotification(
+          "Error",
+          "PDF-Datei nicht verfügbar. Bitte lade die PDF erneut hoch.",
+          "error"
+        );
+        return;
+      }
+
+      // Die PDF-Rendering-Logik wird von pdf-fix.js übernommen,
+      // das die renderPdf-Funktion auf window.app patcht.
+      // Stelle sicher, dass this.renderPdf hier die gepatchte Version ist.
+      if (typeof this.renderPdf === 'function') {
+        this.renderPdf(material); // Diese Funktion sollte die Daten aus der DB laden und rendern
+      } else {
+          console.error("this.renderPdf ist keine Funktion. pdf-fix.js hat sie nicht korrekt gepatcht.");
+          if (pdfContainer) {
+            pdfContainer.innerHTML = `<div class="error-message"><p>Fehler beim Initialisieren der PDF-Anzeige.</p></div>`;
           }
-          this.showNotification(
-            "Error",
-            "Fehler beim Öffnen des Dokuments.",
-            "error"
-          );
-        });
+      }
+        
+      // Activate the PDF tab by default
+      // Stelle sicher, dass activateTab existiert und korrekt funktioniert
+      if (typeof this.activateTab === 'function') {
+        this.activateTab('pdf');
+      } else {
+        console.warn("this.activateTab ist keine Funktion.");
+      }
     },
 
-    // Finally update your renderPdf function
+    // Update your renderPdf function
     renderPdf: function (material) {
       const pdfContainer = document.getElementById("pdf-renderer");
-      if (!pdfContainer) return;
+      if (!pdfContainer) {
+        console.error("PDF container 'pdf-renderer' not found for renderPdf");
+        return;
+      }
 
+      console.log("renderPdf: Rendering PDF for material:", material.id);
       pdfContainer.innerHTML =
-        '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i><p>PDF wird geladen...</p></div>';
+        '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i><p>PDF wird gerendert...</p></div>';
 
-      // Ensure PDF.js is available
-      if (!window.pdfjsLib) {
-        console.error("PDF.js library not found");
+      if (typeof pdfjsLib === 'undefined' || !window.pdfjsLib.getDocument) {
+        console.error("PDF.js library (pdfjsLib) not found or not initialized.");
         pdfContainer.innerHTML = `
-      <div class="error-message">
-        <i class="fas fa-exclamation-triangle"></i>
-        <p>PDF.js Bibliothek konnte nicht geladen werden.</p>
-      </div>
-    `;
-        return;
-      }
-
-      // Check if fileData exists and is valid
-      if (!material || !material.fileData) {
-        console.error("No PDF data available for this material");
-        pdfContainer.innerHTML = `
-      <div class="error-message">
-        <i class="fas fa-exclamation-triangle"></i>
-        <p>PDF konnte nicht geladen werden. Keine gültigen Daten vorhanden.</p>
-      </div>
-    `;
-        return;
-      }
-
-      // Use PDF.js to render the PDF with proper error handling
-      try {
-        pdfjsLib
-          .getDocument({ data: material.fileData })
-          .promise.then((pdf) => {
-            console.log("PDF loaded successfully with", pdf.numPages, "pages");
-            pdfContainer.innerHTML = "";
-
-            // Create container for pages
-            const pagesContainer = document.createElement("div");
-            pagesContainer.className = "pdf-pages";
-            pdfContainer.appendChild(pagesContainer);
-
-            // Render first page initially
-            renderPage(pdf, 1, pagesContainer);
-
-            // Add page navigation if multiple pages
-            if (pdf.numPages > 1) {
-              addPageNavigation(pdf, pagesContainer);
-            }
-          })
-          .catch((error) => {
-            console.error("Error loading PDF:", error);
-            pdfContainer.innerHTML = `
           <div class="error-message">
             <i class="fas fa-exclamation-triangle"></i>
-            <p>PDF konnte nicht geladen werden: ${
-              error.message || "Unbekannter Fehler"
-            }</p>
-          </div>
-        `;
-          });
-      } catch (error) {
-        console.error("Exception in PDF rendering:", error);
-        pdfContainer.innerHTML = `
-      <div class="error-message">
-        <i class="fas fa-exclamation-triangle"></i>
-        <p>PDF konnte nicht verarbeitet werden: ${
-          error.message || "Unbekannter Fehler"
-        }</p>
-      </div>
-    `;
+            <p>PDF.js Bibliothek konnte nicht geladen werden. Die PDF kann nicht angezeigt werden.</p>
+          </div>`;
+        return;
       }
 
-      // Helper function to render a specific page
-      function renderPage(pdf, pageNumber, container) {
-        pdf.getPage(pageNumber).then((page) => {
-          const viewport = page.getViewport({ scale: 1.5 });
-
-          const pageContainer = document.createElement("div");
-          pageContainer.className = "pdf-page";
-          pageContainer.dataset.pageNumber = pageNumber;
-          container.appendChild(pageContainer);
-
-          const canvas = document.createElement("canvas");
-          pageContainer.appendChild(canvas);
-
-          const context = canvas.getContext("2d");
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-
-          const renderContext = {
-            canvasContext: context,
-            viewport: viewport,
-          };
-
-          page.render(renderContext);
-        });
-      }
-
-      // Helper function to add page navigation
-      function addPageNavigation(pdf, container) {
-        const pageNav = document.createElement("div");
-        pageNav.className = "pdf-navigation";
-
-        const prevButton = document.createElement("button");
-        prevButton.className = "btn-secondary";
-        prevButton.innerHTML =
-          '<i class="fas fa-arrow-left"></i> Vorherige Seite';
-        prevButton.disabled = true;
-
-        const nextButton = document.createElement("button");
-        nextButton.className = "btn-primary";
-        nextButton.innerHTML =
-          'Nächste Seite <i class="fas fa-arrow-right"></i>';
-
-        const pageInfo = document.createElement("span");
-        pageInfo.className = "page-info";
-        pageInfo.textContent = `Seite 1 von ${pdf.numPages}`;
-
-        pageNav.appendChild(prevButton);
-        pageNav.appendChild(pageInfo);
-        pageNav.appendChild(nextButton);
-
-        pdfContainer.appendChild(pageNav);
-
-        let currentPage = 1;
-
-        prevButton.addEventListener("click", () => {
-          if (currentPage > 1) {
-            currentPage--;
-            updatePageNavigation();
-            scrollToPage(currentPage);
-          }
-        });
-
-        nextButton.addEventListener("click", () => {
-          if (currentPage < pdf.numPages) {
-            currentPage++;
-            // Render the next page if it doesn't exist yet
-            if (
-              !container.querySelector(
-                `.pdf-page[data-page-number="${currentPage}"]`
-              )
-            ) {
-              renderPage(pdf, currentPage, container);
+      if (!material.fileData) {
+        console.error(
+          "renderPdf: No PDF data in material object for ID:",
+          material.id,
+          "Attempting to fetch."
+        );
+        // Attempt to fetch it again if somehow it's missing, though openMaterial should provide it
+        this.getPdfFromIndexedDB(material.id)
+          .then((fileData) => {
+            if (!fileData) {
+              console.error("renderPdf: PDF data not found in IndexedDB for ID:", material.id);
+              pdfContainer.innerHTML = `
+                <div class="error-message">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <p>PDF konnte nicht geladen werden. Bitte lade die PDF erneut hoch.</p>
+                </div>`;
+              return;
             }
-            updatePageNavigation();
-            scrollToPage(currentPage);
-          }
-        });
-
-        function updatePageNavigation() {
-          pageInfo.textContent = `Seite ${currentPage} von ${pdf.numPages}`;
-          prevButton.disabled = currentPage === 1;
-          nextButton.disabled = currentPage === pdf.numPages;
-        }
-
-        function scrollToPage(pageNumber) {
-          const pageElement = container.querySelector(
-            `.pdf-page[data-page-number="${pageNumber}"]`
-          );
-          if (pageElement) {
-            pageElement.scrollIntoView({ behavior: "smooth" });
-          }
-        }
+            material.fileData = fileData; // Store it
+            this.renderPdfWithData(material, pdfContainer); // Retry rendering
+          })
+          .catch((error) => {
+            console.error("renderPdf: Error loading PDF from IndexedDB:", error);
+            pdfContainer.innerHTML = `
+              <div class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Fehler beim Laden des PDFs: ${error.message}</p>
+              </div>`;
+          });
+      } else {
+        // PDF data is already in memory, render it directly
+        this.renderPdfWithData(material, pdfContainer);
       }
+    },
+
+    // Add this helper function for rendering
+    renderPdfWithData: function (material, pdfContainer) {
+      console.log("Rendering PDF with data, size:", material.fileData.length);
+
+      // Use PDF.js to render the PDF
+      pdfjsLib
+        .getDocument({ data: material.fileData })
+        .promise.then((pdf) => {
+          console.log("PDF loaded successfully with", pdf.numPages, "pages");
+          pdfContainer.innerHTML = "";
+
+          // Create container for pages
+          const pagesContainer = document.createElement("div");
+          pagesContainer.className = "pdf-pages";
+          pdfContainer.appendChild(pagesContainer);
+
+          // Render first page initially
+          this.renderPage(pdf, 1, pagesContainer);
+
+          // Add page navigation
+          this.addPageNavigation(pdf, pdfContainer);
+        })
+        .catch((err) => {
+          console.error("Error rendering PDF:", err);
+          pdfContainer.innerHTML = `
+        <div class="error-message">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>Fehler beim Öffnen des Dokuments: ${
+            err.message || "Unbekannter Fehler"
+          }</p>
+        </div>`;
+        });
     },
 
     // Load all PDF data from IndexedDB into materials
@@ -455,203 +413,220 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       });
 
-      // Update the handler for the regenerate button
-      document
-        .getElementById("regenerate-summary")
-        ?.addEventListener("click", () => {
+      const regenerateSummaryBtn = document.getElementById("regenerate-summary");
+      if (regenerateSummaryBtn) {
+        regenerateSummaryBtn.addEventListener("click", () => {
           if (this.currentMaterial) {
-            // Delete existing summary from memory
-            delete this.currentMaterial.summary;
-
-            // Also delete from IndexedDB
-            if (this.db) {
-              const transaction = this.db.transaction(
-                ["summaries"],
-                "readwrite"
-              );
-              const store = transaction.objectStore("summaries");
-              store.delete(this.currentMaterial.id);
+            delete this.currentMaterial.summary; // Summary aus dem Speicher entfernen
+            if (this.db) { // Summary aus IndexedDB entfernen
+              try {
+                const transaction = this.db.transaction(["summaries"], "readwrite");
+                const store = transaction.objectStore("summaries");
+                store.delete(this.currentMaterial.id);
+              } catch (e) { console.error("Fehler beim Löschen der Zusammenfassung aus IDB:", e); }
             }
-
-            // Generate a new one
-            this.generateSummary(this.currentMaterial);
+            this.generateSummary(this.currentMaterial); // Neue generieren
           }
         });
+      } else {
+        console.warn("Button 'regenerate-summary' nicht gefunden.");
+      }
 
       // PDF Upload
       const uploadArea = document.getElementById("upload-area");
       const pdfUpload = document.getElementById("pdf-upload");
 
-      uploadArea.addEventListener("click", () => {
-        pdfUpload.click();
-      });
+      if (uploadArea && pdfUpload) {
+        uploadArea.addEventListener("click", () => {
+          pdfUpload.click();
+        });
 
-      uploadArea.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        uploadArea.classList.add("drag-over");
-      });
+        uploadArea.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          uploadArea.classList.add("drag-over");
+        });
 
-      uploadArea.addEventListener("dragleave", () => {
-        uploadArea.classList.remove("drag-over");
-      });
+        uploadArea.addEventListener("dragleave", () => {
+          uploadArea.classList.remove("drag-over");
+        });
 
-      uploadArea.addEventListener("drop", (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove("drag-over");
-
-        if (e.dataTransfer.files.length > 0) {
-          const file = e.dataTransfer.files[0];
-          if (file.type === "application/pdf") {
-            this.proceFgssPdfFile(file);
-          } else {
-            this.showNotification(
-              "Error",
-              "Bitte lade eine PDF-Datei hoch",
-              "error"
-            );
-          }
-        }
-      });
-
-      pdfUpload.addEventListener("change", (e) => {
-        if (e.target.files.length > 0) {
-          const file = e.target.files[0];
-          if (file.type === "application/pdf") {
-            this.processPdfFile(file);
-          } else {
-            this.showNotification(
-              "Error",
-              "Bitte lade eine PDF-Datei hoch",
-              "error"
-            );
-          }
-        }
-      });
-
-      document
-        .getElementById("regenerate-summary")
-        ?.addEventListener("click", () => {
-          if (this.currentMaterial) {
-            // Delete existing summary
-            delete this.currentMaterial.summary;
-            // Generate a new one
-            this.generateSummary(this.currentMaterial);
+        uploadArea.addEventListener("drop", (e) => {
+          e.preventDefault();
+          uploadArea.classList.remove("drag-over");
+          if (e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0];
+            if (file.type === "application/pdf") {
+              this.processPdfFile(file);
+            } else {
+              this.showNotification("Error", "Bitte lade eine PDF-Datei hoch", "error");
+            }
           }
         });
+
+        pdfUpload.addEventListener("change", (e) => {
+          if (e.target.files.length > 0) {
+            const file = e.target.files[0];
+            if (file.type === "application/pdf") {
+              this.processPdfFile(file);
+            } else {
+              this.showNotification("Error", "Bitte lade eine PDF-Datei hoch", "error");
+            }
+          }
+        });
+      } else {
+        console.warn("'upload-area' oder 'pdf-upload' nicht gefunden.");
+      }
 
       // Material viewer back button
-      document.querySelector(".back-btn").addEventListener("click", () => {
-        this.showPage("materials");
-      });
+      const backBtnMaterialViewer = document.querySelector("#material-viewer .back-btn, #material-viewer #back-to-materials-btn"); // Flexibler Selektor
+      if (backBtnMaterialViewer) {
+        backBtnMaterialViewer.addEventListener("click", () => {
+          this.showPage("materials");
+        });
+      } else {
+        console.warn("Back-Button im Material Viewer nicht gefunden.");
+      }
 
       // Material tabs
-      document.querySelectorAll(".material-tabs .tab").forEach((tab) => {
-        tab.addEventListener("click", () => {
+      document.querySelectorAll("#material-viewer .tabs .tab").forEach((tab) => {
+        // Verwende eine Arrow Function, um den 'this'-Kontext beizubehalten
+        tab.addEventListener("click", () => { // GEÄNDERT ZU ARROW FUNCTION
           const tabId = tab.getAttribute("data-tab");
-          document
-            .querySelectorAll(".material-tabs .tab")
-            .forEach((t) => t.classList.remove("active"));
-          document
-            .querySelectorAll(".tab-pane")
-            .forEach((p) => p.classList.remove("active"));
+          if (typeof this.activateTab === 'function') { // Prüfen ob activateTab existiert
+            this.activateTab(tabId); 
+          } else {
+            console.error("this.activateTab ist keine Funktion in setupEventListeners für Material-Tabs.");
+          }
 
-          tab.classList.add("active");
-          document.getElementById(tabId + "-content").classList.add("active");
-
-          // If summary tab is clicked, generate summary if it doesn't exist
-          if (
-            tabId === "summary" &&
-            this.currentMaterial &&
-            !this.currentMaterial.summary
-          ) {
-            this.generateSummary(this.currentMaterial);
+          // Wenn Zusammenfassung-Tab geklickt wird und keine Zusammenfassung da ist, generiere sie
+          if (tabId === "summary" && this.currentMaterial && !this.currentMaterial.summary) {
+            if (typeof this.generateSummary === 'function') { // Prüfen ob generateSummary existiert
+                this.generateSummary(this.currentMaterial);
+            } else {
+                console.error("this.generateSummary ist keine Funktion.");
+            }
           }
         });
       });
 
-      // Generate quiz button
-      document
-        .getElementById("start-quiz-btn")
-        .addEventListener("click", () => {
+      // Generate summary button (im Material Header)
+      const generateSummaryHeaderBtn = document.getElementById("generate-summary-btn");
+      if (generateSummaryHeaderBtn) {
+        generateSummaryHeaderBtn.addEventListener("click", () => {
+          if (this.currentMaterial) {
+            this.generateSummary(this.currentMaterial);
+          }
+        });
+      } else {
+        console.warn("Button 'generate-summary-btn' im Header nicht gefunden.");
+      }
+
+      // Generate quiz button (im Material Header)
+      const generateQuizHeaderBtn = document.getElementById("generate-quiz-btn");
+      if (generateQuizHeaderBtn) {
+        generateQuizHeaderBtn.addEventListener("click", () => {
           if (this.currentMaterial) {
             this.generateQuiz(this.currentMaterial);
           }
         });
-
-      // Mark as completed button
-      document
-        .getElementById("mark-completed-btn")
-        .addEventListener("click", () => {
+      } else {
+        console.warn("Button 'generate-quiz-btn' im Header nicht gefunden.");
+      }
+      
+      // Save notes button
+      const saveNotesBtn = document.getElementById("save-notes-btn");
+      if (saveNotesBtn) {
+        saveNotesBtn.addEventListener("click", () => {
           if (this.currentMaterial) {
-            this.currentMaterial.completed = true;
-            this.saveData();
-            this.updateUI();
-
-            // Update button
-            const btn = document.getElementById("mark-completed-btn");
-            btn.innerHTML = '<i class="fas fa-check"></i> Abgeschlossen';
-            btn.disabled = true;
-
-            this.showNotification(
-              "Success",
-              "Material als abgeschlossen markiert!",
-              "success"
-            );
+            const notesEditor = document.getElementById("notes-editor");
+            if (notesEditor) {
+              this.currentMaterial.notes = notesEditor.value;
+              this.saveData(); // Speichert alle Daten, inkl. Notizen im materials Array
+              this.showNotification("Gespeichert", "Notizen erfolgreich gespeichert.", "success");
+            }
           }
         });
+      } else {
+          console.warn("Button 'save-notes-btn' nicht gefunden.");
+      }
+
+
+      // Mark as completed button
+      const markCompletedBtn = document.getElementById("mark-completed-btn");
+      if (markCompletedBtn) {
+        markCompletedBtn.addEventListener("click", () => {
+          if (this.currentMaterial) {
+            this.currentMaterial.completed = !this.currentMaterial.completed; // Toggle completed state
+            this.saveData();
+            // this.updateUI(); // updateUI wird oft global aufgerufen, ggf. spezifischeres Update
+            
+            // Button Text und Zustand direkt aktualisieren
+            markCompletedBtn.innerHTML = this.currentMaterial.completed ?
+              '<i class="fas fa-times"></i> Als unvollständig markieren' :
+              '<i class="fas fa-check"></i> Als abgeschlossen markieren';
+            
+            this.showNotification("Status geändert", `Material als ${this.currentMaterial.completed ? 'abgeschlossen' : 'unvollständig'} markiert!`, "success");
+          }
+        });
+      } else {
+        console.warn("Button 'mark-completed-btn' nicht gefunden.");
+      }
 
       // Quiz navigation
-      document.getElementById("next-question").addEventListener("click", () => {
-        this.nextQuestion();
-      });
-
-      document.getElementById("finish-quiz").addEventListener("click", () => {
-        this.finishQuiz();
-      });
-
-      document
-        .getElementById("retry-incorrect")
-        .addEventListener("click", () => {
-          this.retryIncorrectQuestions();
+      const nextQuestionBtn = document.getElementById("next-question");
+      if (nextQuestionBtn) {
+        nextQuestionBtn.addEventListener("click", () => this.nextQuestion());
+      }
+      const finishQuizBtn = document.getElementById("finish-quiz");
+      if (finishQuizBtn) {
+        finishQuizBtn.addEventListener("click", () => this.finishQuiz());
+      }
+      const retryIncorrectBtn = document.getElementById("retry-incorrect");
+      if (retryIncorrectBtn) {
+        retryIncorrectBtn.addEventListener("click", () => this.retryIncorrectQuestions());
+      }
+      const backToQuizzesBtn = document.getElementById("back-to-quizzes");
+      if (backToQuizzesBtn) {
+        backToQuizzesBtn.addEventListener("click", () => {
+          const quizResults = document.getElementById("quiz-results");
+          const quizList = document.getElementById("quiz-list");
+          if (quizResults) quizResults.classList.add("hidden");
+          if (quizList) quizList.classList.remove("hidden");
         });
-
-      document
-        .getElementById("back-to-quizzes")
-        .addEventListener("click", () => {
-          document.getElementById("quiz-results").classList.add("hidden");
-          document.getElementById("quiz-list").classList.remove("hidden");
+      }
+      const exitQuizBtn = document.getElementById("exit-quiz");
+      if (exitQuizBtn) {
+        exitQuizBtn.addEventListener("click", () => {
+          if (confirm("Möchtest du das Quiz wirklich verlassen? Dein Fortschritt wird nicht gespeichert.")) {
+            this.exitQuiz();
+          }
         });
-
-      // Add exit quiz button
-      document.getElementById("exit-quiz").addEventListener("click", () => {
-        if (
-          confirm(
-            "Möchtest du das Quiz wirklich verlassen? Dein Fortschritt wird nicht gespeichert."
-          )
-        ) {
-          this.exitQuiz();
-        }
-      });
+      }
 
       // Exam form
-      document.getElementById("exam-form").addEventListener("submit", (e) => {
-        e.preventDefault();
-        this.addExam();
-      });
+      const examForm = document.getElementById("exam-form");
+      if (examForm) {
+        examForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          this.addExam();
+        });
+      }
 
       // AI Chat
-      document.getElementById("send-message").addEventListener("click", () => {
-        this.sendMessage();
-      });
-
-      document
-        .getElementById("user-message")
-        .addEventListener("keydown", (e) => {
+      const sendMessageBtn = document.getElementById("send-message");
+      if (sendMessageBtn) {
+        sendMessageBtn.addEventListener("click", () => this.sendMessage());
+      }
+      const userMessageInput = document.getElementById("user-message");
+      if (userMessageInput) {
+        userMessageInput.addEventListener("keydown", (e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             this.sendMessage();
           }
         });
+      }
+      // ... (Restliche Event Listener mit Null-Prüfungen versehen) ...
     },
 
     updateUI: function () {
@@ -752,64 +727,74 @@ document.addEventListener("DOMContentLoaded", function () {
     },
 
     processPdfFile: function (file) {
-      // Show loading modal
       document.getElementById("loading-modal").classList.add("active");
-      document.getElementById("loading-message").textContent =
-        "Verarbeite deine PDF...";
+      document.getElementById("loading-message").textContent = "Verarbeite deine PDF...";
 
-      // Create a new material object with basic info
-      const newMaterial = {
-        id: Date.now().toString(),
-        name: file.name.replace(".pdf", ""),
-        fileName: file.name,
-        dateAdded: new Date().toISOString(),
-        completed: false,
-        summary: null,
-        content: "",
-        pages: [],
-        fileAvailable: true,
-      };
+      // ID und Name HIER definieren, damit sie im reader.onload Scope verfügbar sind
+      const materialId = Date.now().toString();
+      const materialName = file.name.replace(/\.pdf$/i, ""); // Entfernt .pdf am Ende, case-insensitive
 
-      // Convert file to data URL for storage
+      // Das newMaterial Objekt hier ist nur für die Metadaten,
+      // die eigentlichen PDF-Daten (fileData) werden separat behandelt.
+      // Das 'content' Feld wird später durch extractPdfContent gefüllt.
+      // const newMaterialShell = { // Dieses Objekt wird eigentlich erst nach dem Laden der Datei komplettiert
+      //   id: materialId,
+      //   name: materialName,
+      //   fileName: file.name,
+      //   dateAdded: new Date().toISOString(),
+      //   completed: false,
+      //   summary: null,
+      //   content: "", // Wird durch extractPdfContent gefüllt
+      //   // pages: [], // pages wird durch pdf.js Analyse gefüllt, falls implementiert
+      //   fileAvailable: true, // Annahme, da gerade hochgeladen
+      //   type: 'pdf'
+      // };
+
       const reader = new FileReader();
-      reader.onload = (e) => {
-        const fileData = e.target.result;
-
-        // Use PDF.js to extract text content
-        this.extractPdfContent(newMaterial, fileData)
-          .then(() => {
-            // Save the PDF data to IndexedDB
-            return this.savePdfToIndexedDB(newMaterial.id, fileData);
-          })
-          .then(() => {
-            // Add the material to our list (without the fileData for localStorage)
-            this.materials.push(newMaterial);
-            if (!this.saveData()) {
-              throw new Error("Failed to save data");
+      reader.onload = async (e) => {
+        const fileData = e.target.result; // ArrayBuffer
+        try {
+            let extractedContentForAI = "";
+            if (this.extractPdfContent) {
+                try {
+                    extractedContentForAI = await this.extractPdfContent(fileData);
+                    console.log("PDF-Inhalt für AI extrahiert, Länge:", extractedContentForAI.length);
+                } catch (extractError) {
+                    console.warn("Konnte PDF-Inhalt für AI nicht extrahieren:", extractError);
+                }
             }
 
-            // Update UI
-            this.updateUI();
+            // Stelle sicher, dass savePdfToDB von pdf-fix.js bereitgestellt wird
+            if (typeof this.savePdfToDB === 'function') {
+                await this.savePdfToDB(materialId, fileData); // materialId ist jetzt definiert
+            } else {
+                console.error("savePdfToDB ist keine Funktion. Wurde pdf-fix.js korrekt geladen?");
+                throw new Error("PDF Speicherfunktion nicht verfügbar.");
+            }
 
-            // Hide loading modal
+            const newMaterial = { // newMaterial Objekt hier erstellen, NACHDEM alles da ist
+                id: materialId, // materialId ist jetzt definiert
+                name: materialName, // materialName ist jetzt definiert
+                type: 'pdf',
+                fileName: file.name, // fileName hinzufügen
+                dateAdded: new Date().toISOString(), // dateAdded hinzufügen
+                content: extractedContentForAI,
+                summary: '', // oder null
+                notes: '',
+                completed: false,
+                quizAttempts: []
+                // fileData hier nicht speichern, es ist in IndexedDB
+            };
+            this.materials.push(newMaterial);
+            this.saveData(); // Speichert Metadaten (ohne fileData) in localStorage
+            this.updateMaterialsList();
+            this.showNotification("Erfolg", `${materialName} erfolgreich hochgeladen.`, "success");
+        } catch (error) {
+            console.error("Fehler beim Verarbeiten der PDF-Datei:", error);
+            this.showNotification("Fehler", `PDF konnte nicht verarbeitet werden: ${error.message}`, "error");
+        } finally {
             document.getElementById("loading-modal").classList.remove("active");
-
-            // Notify user
-            this.showNotification(
-              "Success",
-              "PDF erfolgreich verarbeitet!",
-              "success"
-            );
-          })
-          .catch((error) => {
-            console.error("Error processing PDF:", error);
-            document.getElementById("loading-modal").classList.remove("active");
-            this.showNotification(
-              "Error",
-              "Fehler beim Verarbeiten des PDFs. Bitte versuche es erneut.",
-              "error"
-            );
-          });
+        }
       };
 
       reader.onerror = (error) => {
@@ -822,60 +807,38 @@ document.addEventListener("DOMContentLoaded", function () {
         );
       };
 
-      reader.readAsDataURL(file);
+      // reader.readAsDataURL(file); // Du solltest readAsArrayBuffer verwenden für PDF.js
+      reader.readAsArrayBuffer(file);
     },
 
-    extractPdfContent: async function (material, fileData) {
+    extractPdfContent: async function (fileData) {
+      console.log("extractPdfContent: Versuche, PDF-Inhalt zu extrahieren.");
+      if (typeof pdfjsLib === "undefined" || !pdfjsLib.getDocument) {
+        // Überprüfung hinzugefügt
+        console.error(
+          "extractPdfContent: pdfjsLib ist nicht definiert oder nicht korrekt initialisiert!"
+        );
+        throw new ReferenceError("pdfjsLib is not defined or not ready");
+      }
+
       try {
-        // Load the PDF using PDF.js
-        const loadingTask = pdfjsLib.getDocument(fileData);
-        const pdf = await loadingTask.promise;
-
+        const pdf = await pdfjsLib.getDocument({ data: fileData }).promise;
         let fullText = "";
-        material.pages = [];
-
-        // Read each page
         for (let i = 1; i <= pdf.numPages; i++) {
-          document.getElementById(
-            "loading-message"
-          ).textContent = `Verarbeite Seite ${i} von ${pdf.numPages}...`;
-
           const page = await pdf.getPage(i);
           const textContent = await page.getTextContent();
-
-          // Extract text from page
-          const pageText = textContent.items.map((item) => item.str).join(" ");
-          fullText += pageText + " ";
-
-          // Store page text
-          material.pages.push({
-            pageNumber: i,
-            text: pageText,
-          });
-
-          // Get a thumbnail for display
-          if (i === 1) {
-            const viewport = page.getViewport({ scale: 0.5 });
-            const canvas = document.createElement("canvas");
-            const context = canvas.getContext("2d");
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-
-            await page.render({
-              canvasContext: context,
-              viewport: viewport,
-            }).promise;
-
-            material.thumbnail = canvas.toDataURL("image/jpeg", 0.5); // Reduced quality for storage
-          }
+          fullText +=
+            textContent.items.map((item) => item.str).join(" ") + "\n";
         }
-
-        // Store the full text content
-        material.content = fullText;
-        return true;
+        console.log("extractPdfContent: Inhaltsextraktion erfolgreich.");
+        return fullText.trim();
       } catch (error) {
-        console.error("Failed to extract PDF content:", error);
-        throw error;
+        console.error(
+          "extractPdfContent: Fehler beim Extrahieren des PDF-Inhalts:",
+          error
+        );
+        // Gib den spezifischen Fehler weiter, damit die aufrufende Funktion ihn behandeln kann
+        throw error; // Wichtig, um den Fehler an die aufrufende Funktion weiterzugeben
       }
     },
 
@@ -1032,170 +995,7 @@ document.addEventListener("DOMContentLoaded", function () {
       );
     },
 
-    openMaterial: function (materialId) {
-      console.log("Opening material:", materialId);
-      const material = this.materials.find((m) => m.id === materialId);
-      if (!material) {
-        console.error("Material not found:", materialId);
-        return;
-      }
-
-      console.log("Material has summary?", !!material.summary);
-
-      // Show the material page
-      this.showPage("material-view");
-
-      // Render the PDF
-      this.renderPdf(material);
-
-      // Clear previous content
-      document.getElementById("summary-content").innerHTML = "";
-
-      // If we have a saved summary, show it immediately
-      if (material.summary) {
-        document.getElementById("summary-tab").classList.add("has-content");
-        document.getElementById("summary-content").innerHTML =
-          this.formatChatResponse(material.summary);
-      } else {
-        document.getElementById("summary-tab").classList.remove("has-content");
-      }
-
-      // Show loading indicator
-      document.getElementById("loading-modal").classList.add("active");
-      document.getElementById("loading-message").textContent =
-        "Lade Dokument...";
-
-      // Check if material is available in IndexedDB
-      if (!material.fileAvailable) {
-        document.getElementById("loading-modal").classList.remove("active");
-        this.showNotification(
-          "Error",
-          "PDF-Datei nicht verfügbar. Bitte lade die PDF erneut hoch.",
-          "error"
-        );
-        return;
-      }
-
-      // Fetch PDF data from IndexedDB
-      this.getPdfFromIndexedDB(material.id)
-        .then((fileData) => {
-          if (!fileData) {
-            document.getElementById("loading-modal").classList.remove("active");
-            this.showNotification(
-              "Error",
-              "PDF-Datei konnte nicht geladen werden. Bitte lade die PDF erneut hoch.",
-              "error"
-            );
-            return;
-          }
-
-          // Store fileData temporarily for rendering
-          this.currentMaterial.fileData = fileData;
-
-          // Update material viewer
-          document.getElementById("material-title").textContent = material.name;
-
-          // Reset tabs
-          document
-            .querySelectorAll(".material-tabs .tab")
-            .forEach((t) => t.classList.remove("active"));
-          document
-            .querySelectorAll(".tab-pane")
-            .forEach((p) => p.classList.remove("active"));
-          document
-            .querySelector('.material-tabs .tab[data-tab="original"]')
-            .classList.add("active");
-          document.getElementById("original-content").classList.add("active");
-
-          // Set mark as completed button state
-          const completeBtn = document.getElementById("mark-completed-btn");
-          if (material.completed) {
-            completeBtn.innerHTML =
-              '<i class="fas fa-check"></i> Abgeschlossen';
-            completeBtn.disabled = true;
-          } else {
-            completeBtn.innerHTML =
-              '<i class="fas fa-check"></i> Als abgeschlossen markieren';
-            completeBtn.disabled = false;
-          }
-
-          // Render the PDF
-          this.renderPdf(this.currentMaterial);
-
-          // Hide loading modal
-          document.getElementById("loading-modal").classList.remove("active");
-
-          // Show the material viewer page
-          this.showPage("material-viewer");
-        })
-        .catch((err) => {
-          console.error("Error opening material:", err);
-          document.getElementById("loading-modal").classList.remove("active");
-          this.showNotification(
-            "Error",
-            "Fehler beim Öffnen des Dokuments.",
-            "error"
-          );
-        });
-    },
-
-    // In app.js - Update the renderPdf function
-    renderPdf: function (material) {
-      const pdfContainer = document.getElementById("pdf-renderer");
-      if (!pdfContainer) return;
-
-      pdfContainer.innerHTML =
-        '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i><p>PDF wird geladen...</p></div>';
-
-      // Check if fileData exists and is valid
-      if (!material || !material.fileData) {
-        console.error("No PDF data available for this material");
-        pdfContainer.innerHTML = `
-          <div class="error-message">
-              <i class="fas fa-exclamation-triangle"></i>
-              <p>PDF konnte nicht geladen werden. Keine gültigen Daten vorhanden.</p>
-          </div>
-      `;
-        return;
-      }
-
-      // Use PDF.js to render the PDF with proper error handling
-      try {
-        pdfjsLib
-          .getDocument({ data: material.fileData }) // Pass as an object with data property
-          .promise.then((pdf) => {
-            // Rest of your rendering code...
-            pdfContainer.innerHTML = "";
-
-            // Create container for pages
-            const pagesContainer = document.createElement("div");
-            pagesContainer.className = "pdf-pages";
-            pdfContainer.appendChild(pagesContainer);
-
-            // Render first page
-            pdf.getPage(1).then((page) => {
-              // Your existing rendering code
-            });
-          })
-          .catch((error) => {
-            console.error("Error loading PDF:", error);
-            pdfContainer.innerHTML = `
-                  <div class="error-message">
-                      <i class="fas fa-exclamation-triangle"></i>
-                      <p>PDF konnte nicht geladen werden: ${error.message}</p>
-                  </div>
-              `;
-          });
-      } catch (error) {
-        console.error("Exception in PDF rendering:", error);
-        pdfContainer.innerHTML = `
-          <div class="error-message">
-              <i class="fas fa-exclamation-triangle"></i>
-              <p>PDF konnte nicht geladen werden: ${error.message}</p>
-          </div>
-      `;
-      }
-    },
+  
 
     // Replace your generateSummary function with this one
     generateSummary: function (material) {
@@ -2228,52 +2028,38 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       });
     },
-    initIndexedDB: function() {
+    // Replace your initIndexedDB function with this
+    initIndexedDB: function () {
       return new Promise((resolve, reject) => {
-        try {
-          console.log("Initializing IndexedDB...");
-          
-          if (!window.indexedDB) {
-            const error = new Error("IndexedDB not supported in this browser");
-            console.error(error);
-            reject(error);
-            return;
+        console.log("Initializing IndexedDB...");
+        const request = indexedDB.open("StudyCompanionDB", 3); // Increase version number
+
+        request.onerror = (event) => {
+          console.error("IndexedDB error:", event.target.errorCode);
+          reject(event.target.errorCode);
+        };
+
+        request.onsuccess = (event) => {
+          console.log("IndexedDB opened successfully");
+          this.db = event.target.result;
+          resolve(this.db);
+        };
+
+        request.onupgradeneeded = (event) => {
+          console.log("Upgrading IndexedDB schema");
+          const db = event.target.result;
+
+          // Create consistent store names
+          if (!db.objectStoreNames.contains("pdfs")) {
+            console.log("Creating pdfs store");
+            db.createObjectStore("pdfs", { keyPath: "id" });
           }
-          
-          const request = window.indexedDB.open("StudyCompanionDB", 2);
-          
-          request.onerror = (event) => {
-            // FIXED: Use error instead of errorCode
-            const error = event.target.error || new Error("Unknown IndexedDB error");
-            console.error("IndexedDB error:", error);
-            reject(error);
-          };
-          
-          request.onupgradeneeded = (event) => {
-            console.log("Upgrading IndexedDB schema...");
-            const db = event.target.result;
-            
-            // Use consistent store name "pdfs"
-            if (!db.objectStoreNames.contains("pdfs")) {
-              console.log("Creating pdfs object store");
-              db.createObjectStore("pdfs", { keyPath: "id" });
-            }
-            
-            if (!db.objectStoreNames.contains("summaries")) {
-              console.log("Creating summaries object store");
-              db.createObjectStore("summaries", { keyPath: "id" });
-            }
-          };
-          
-          request.onsuccess = (event) => {
-            console.log("IndexedDB initialized successfully");
-            this.db = event.target.result;
-            resolve(this.db);
-          };
-        } catch (error) {
-          console.error("Exception during IndexedDB initialization:", error);
-          reject(error);
-        }
+
+          if (!db.objectStoreNames.contains("summaries")) {
+            console.log("Creating summaries store");
+            db.createObjectStore("summaries", { keyPath: "id" });
+          }
+        };
       });
     },
 

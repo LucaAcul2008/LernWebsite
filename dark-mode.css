@@ -277,6 +277,21 @@
     display: inline-block;
   }
 
- 
+  body.dark-mode .theme-toggle .fa-sun {
+    display: inline-block; /* Zeigt das Sonnen-Icon im Dark Mode */
+  }
+  
+  body.dark-mode .theme-toggle .fa-moon {
+    display: none; /* Versteckt das Mond-Icon im Dark Mode */
+  }
+  
+  /* Standard-Icons (Light Mode) - diese sollten in styles.css sein oder hier als Fallback */
+  .theme-toggle .fa-sun {
+    display: none; /* Sonnen-Icon standardmäßig versteckt */
+  }
+  
+  .theme-toggle .fa-moon {
+    display: inline-block; /* Mond-Icon standardmäßig sichtbar */
+  }
   
   

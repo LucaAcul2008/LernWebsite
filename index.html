@@ -14,8 +14,6 @@
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 
-    <!-- Include PDF.js for PDF rendering -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js" defer></script>
 
     <!-- Chart.js for analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
@@ -23,6 +21,8 @@
 
     <!-- Add this in your <head> section, before your other scripts -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
 
     
 
@@ -37,21 +37,7 @@
     <meta property="og:image" content="icons/icon-512.png">
     <meta property="og:url" content="https://studycompanion.example.com">
 
-    <script>
-        // Initialize PDF.js
-        document.addEventListener('DOMContentLoaded', () => {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
-        });
 
-        // Register service worker for offline capabilities
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(reg => console.log('Service worker registered'))
-                    .catch(err => console.log('Service worker not registered', err));
-            });
-        }
-    </script>
 </head>
 
 <body>
@@ -605,35 +591,18 @@
  
 
     <!-- JavaScript -->
+    <script src="pdf-fix.js"></script>
     <script src="theme-toggle.js"></script>
-    <script src="summary-fixes.js"></script>
     <script src="app.js"></script>
     <script src="timer.js"></script>
     <script src="flashcards.js"></script>
     <script src="analytics.js"></script>
     <script src="audio-recorder.js"></script>
-    <script src="idb-fixes.js"></script>
-    <script src="pdf-fixes.js"></script>
+
 
 
     
-    <script>
-        // Enhanced PDF.js initialization
-        document.addEventListener('DOMContentLoaded', () => {
-          console.log("Initializing PDF.js worker...");
-          
-          if (window.pdfjsLib) {
-            try {
-              window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
-              console.log("PDF.js worker initialized successfully");
-            } catch (error) {
-              console.error("Error initializing PDF.js worker:", error);
-            }
-          } else {
-            console.error("PDF.js library not loaded! Make sure the script is included and loads properly.");
-          }
-        });
-      </script>     
+  
     
 </body>
 
