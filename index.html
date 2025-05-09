@@ -31,6 +31,8 @@
     <meta name="theme-color" content="#4361ee">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
+    <script src="flashcards.js" defer></script>
+
     <!-- Open Graph tags for social sharing -->
     <meta property="og:title" content="Study Companion">
     <meta property="og:description" content="Deine persönliche Lernplattform für effektives Lernen">
@@ -176,12 +178,11 @@
     <div class="material-header">
       <h2 id="material-title">Material Titel</h2>
       <div class="material-actions">
-        <!-- Diese Buttons sind für Aktionen auf das GESAMTE Material gedacht -->
-        <button id="regenerate-summary-btn" class="btn-primary"> <!-- ID geändert für Klarheit, falls ein anderer "generate" Button existiert -->
-          <i class="fas fa-magic"></i> Zusammenfassung neu erstellen
-        </button>
         <button id="generate-quiz-btn" class="btn-secondary">
           <i class="fas fa-question-circle"></i> Quiz erstellen
+        </button>
+        <button id="generate-flashcards-ai-btn" class="btn-secondary"> <!-- NEUER BUTTON -->
+            <i class="fas fa-magic"></i> AI Lernkarten erstellen
         </button>
         <button id="mark-completed-btn" class="btn-accent">
           <i class="fas fa-check"></i> Als abgeschlossen markieren
@@ -192,7 +193,7 @@
       </div>
     </div>
     
-    <div class="material-content-tabs"> <!-- Umbenannt für Klarheit -->
+    <div class="material-content-tabs">
       <div class="tabs">
         <button class="tab active" data-tab="pdf"><i class="fas fa-file-pdf"></i> PDF</button>
         <button class="tab" data-tab="summary"><i class="fas fa-file-alt"></i> Zusammenfassung</button>
@@ -385,47 +386,54 @@
             </div>
         </div>
 
-        <!-- Flashcard Study Container -->
-        <div id="flashcard-study-container" class="study-container" style="display: none;">
-            <div class="study-header">
-                <div class="study-controls">
-                    <button class="btn-secondary" onclick="Flashcards.prevCard()">
-                        <i class="fas fa-arrow-left"></i> Zurück
-                    </button>
-                    <span class="study-set-name">Set Name</span>
-                    <span class="study-progress">1/10</span>
-                    <button class="btn-secondary" onclick="Flashcards.nextCard()">
-                        <i class="fas fa-arrow-right"></i> Weiter
-                    </button>
-                </div>
+         <!-- Flashcards Page -->
+         <div id="flashcards" class="page" role="tabpanel" aria-labelledby="flashcards-tab">
+            <div class="page-header">
+                <h2>Lernkarten</h2>
+                <button id="create-flashcard-set-btn" class="btn-primary"><i class="fas fa-plus"></i> Neues Set erstellen</button>
             </div>
-            <div id="current-card" class="flashcard" onclick="Flashcards.flipCard()">
-                <div class="card-inner">
-                    <div class="card-front">
-                        <div class="card-content">Vorderseite</div>
-                    </div>
-                    <div class="card-back">
-                        <div class="card-content">Rückseite</div>
-                    </div>
-                </div>
-            </div>
-            <div id="confidence-buttons" class="confidence-buttons" style="display: none;">
-                <button class="btn-danger" onclick="Flashcards.updateMastery(0)">
-                    <i class="fas fa-times"></i> Schwierig
-                </button>
-                <button class="btn-secondary" onclick="Flashcards.updateMastery(1)">
-                    <i class="fas fa-minus"></i> Mittel
-                </button>
-                <button class="btn-success" onclick="Flashcards.updateMastery(2)">
-                    <i class="fas fa-check"></i> Einfach
-                </button>
-            </div>
-        </div>
 
-        <!-- Loading Indicator -->
-        <div id="flashcard-loading" class="loading-overlay" style="display: none;">
-            <div class="loading-spinner"></div>
-            <p>Generiere Karteikarten...</p>
+            <div id="flashcard-sets-view">
+                <h3>Meine Lernkarten-Sets</h3>
+                <div id="flashcard-sets-container" class="materials-container">
+                    <!-- Lernkarten-Sets werden hier von JS eingefügt -->
+                    <p class="empty-state">Noch keine Lernkarten-Sets erstellt.</p>
+                </div>
+            </div>
+
+            <div id="flashcard-set-editor-view" class="hidden">
+                <h3 id="flashcard-set-editor-title">Lernkarten-Set erstellen/bearbeiten</h3>
+                <div>
+                    <label for="flashcard-set-name">Name des Sets:</label>
+                    <input type="text" id="flashcard-set-name" placeholder="z.B. Grundlagen der Synchronisation">
+                </div>
+                <div id="flashcards-editor-container">
+                    <!-- Einzelne Lernkarten-Editierfelder werden hier hinzugefügt -->
+                </div>
+                <button id="add-flashcard-to-set-btn" class="btn-secondary"><i class="fas fa-plus"></i> Karte hinzufügen</button>
+                <button id="save-flashcard-set-btn" class="btn-primary"><i class="fas fa-save"></i> Set speichern</button>
+                <button id="cancel-flashcard-set-edit-btn" class="btn-text">Abbrechen</button>
+            </div>
+
+            <div id="flashcard-study-view" class="hidden">
+                <h3 id="flashcard-study-set-name">Lernsession</h3>
+                <div class="flashcard-container">
+                    <div class="flashcard">
+                        <div class="flashcard-front">
+                            <p id="flashcard-question">Vorderseite der Karte</p>
+                        </div>
+                        <div class="flashcard-back">
+                            <p id="flashcard-answer">Rückseite der Karte</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flashcard-navigation">
+                    <button id="flashcard-prev-btn" class="btn-secondary"><i class="fas fa-arrow-left"></i> Vorherige</button>
+                    <button id="flashcard-flip-btn" class="btn-primary">Umdrehen</button>
+                    <button id="flashcard-next-btn" class="btn-secondary">Nächste <i class="fas fa-arrow-right"></i></button>
+                </div>
+                <button id="finish-flashcard-session-btn" class="btn-accent">Session beenden</button>
+            </div>
         </div>
 
         <!-- Remaining code sections continue with similar improvements... -->
@@ -605,7 +613,6 @@
     <script src="theme-toggle.js"></script>
     <script src="app.js"></script>
     <script src="timer.js"></script>
-    <script src="flashcards.js"></script>
     <script src="analytics.js"></script>
     <script src="audio-recorder.js"></script>
 

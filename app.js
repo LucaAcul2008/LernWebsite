@@ -437,6 +437,67 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     },
 
+    setupEventListeners: function () {
+      // ... (existing event listeners) ...
+
+      const generateFlashcardsAIBtn = document.getElementById("generate-flashcards-ai-btn");
+      if (generateFlashcardsAIBtn) {
+        generateFlashcardsAIBtn.addEventListener("click", () => {
+          if (this.currentMaterial) {
+            this.generateAIFlashcards(this.currentMaterial);
+          } else {
+            this.showNotification("Fehler", "Kein Material ausgewählt, um Lernkarten zu erstellen.", "error");
+          }
+        });
+      }
+    },
+
+    generateAIFlashcards: function(material) {
+        if (!material || !material.content || material.content.trim() === "") {
+            this.showNotification("Fehler", "Material hat keinen Inhalt für die Lernkartenerstellung.", "error");
+            console.error("generateAIFlashcards: Material content is missing for material:", material.name);
+            return;
+        }
+
+        document.getElementById("loading-modal").classList.add("active");
+        document.getElementById("loading-message").textContent = "KI generiert Lernkarten...";
+        console.log(`generateAIFlashcards: Generating AI flashcards for material: ${material.name}`);
+
+        // Ggf. die Länge des Inhalts für die API begrenzen
+        const contentForAI = material.content.substring(0, 15000); 
+
+        this.callOllamaAPI({
+            action: "generateFlashcards",
+            material: {
+                id: material.id,
+                name: material.name,
+                content: contentForAI,
+            }
+        })
+        .then(response => {
+            document.getElementById("loading-modal").classList.remove("active");
+            if (response && response.success && response.flashcards && response.flashcards.length > 0) {
+                this.showNotification("Erfolg", `${response.flashcards.length} Lernkarten wurden von der KI erstellt.`, "success");
+                
+                // Übergebe die Karten an das flashcards.js Modul
+                if (window.app && window.app.flashcards && typeof window.app.flashcards.prepareEditorWithAICards === 'function') {
+                    this.showPage('flashcards'); // Zur Lernkarten-Seite wechseln
+                    window.app.flashcards.prepareEditorWithAICards(material.name, response.flashcards);
+                } else {
+                    console.error("Flashcard module or prepareEditorWithAICards function not available.");
+                    this.showNotification("Fehler", "Lernkarten-Funktion nicht bereit, um KI-Karten anzuzeigen.", "error");
+                }
+            } else {
+                throw new Error(response.error || "KI konnte keine Lernkarten generieren oder das Format war unerwartet.");
+            }
+        })
+        .catch(error => {
+            document.getElementById("loading-modal").classList.remove("active");
+            console.error("Error generating AI flashcards:", error);
+            this.showNotification("Fehler bei KI-Lernkarten", `Fehler: ${error.message}`, "error");
+        });
+    },
+
     activateTab: function(tabIdToShow) {
       const viewer = document.getElementById('material-viewer');
       if (!viewer) {
