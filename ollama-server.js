@@ -1,9 +1,5 @@
-/**
- * Ollama and Hack Club API Server
- * Provides AI services for student learning assistance
- */
-
-// Import required modules
+// Import Cerebras SDK
+const { Cerebras } = require('@cerebras/cerebras_cloud_sdk');
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -11,15 +7,33 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const { v4: uuidv4 } = require('uuid');
 
+// Initialize Cerebras client with direct API key
+const client = new Cerebras({
+  apiKey: 'csk-ffxtrfecp63c38t9j8422mc48x2r8mc8dpf2rfekrpep4xek'
+});
+
 // Initialize express application
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MAX_RETRIES = 2;
 const REQUEST_TIMEOUT = 60000; // 60 second timeout
 
-// API endpoints
-const OLLAMA_API = process.env.OLLAMA_API || 'http://localhost:11434/api';
-const HACK_CLUB_API = process.env.HACK_CLUB_API || 'https://ai.hackclub.com/chat/completions';
+// Test the Cerebras API on startup
+async function testCerebrasAPI() {
+  try {
+    console.log("Testing Cerebras API connection...");
+    const completionCreateResponse = await client.chat.completions.create({
+      messages: [{ role: 'user', content: 'Why is fast inference important?' }],
+      model: 'llama-4-scout-17b-16e-instruct',
+    });
+
+    console.log("✅ Cerebras API test successful!");
+    return true;
+  } catch (error) {
+    console.error("❌ Cerebras API test failed:", error.message);
+    return false;
+  }
+}
 
 // Configure security middleware
 app.use(helmet()); // Add security headers
@@ -32,7 +46,7 @@ app.use(cors({
 }));
 
 // Request size limits
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -123,189 +137,72 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Call Hack Club API with retry mechanism
-async function callHackClubAPIWithRetry(prompt, action, retries = 0) {
+// Call Cerebras API with retry mechanism
+async function callCerebrasAPIWithRetry(prompt, action, retries = 0) {
   const requestId = uuidv4();
   try {
-    console.log(`[${new Date().toISOString()}] [${requestId}] 🤖 Using Hack Club API for ${action}`);
+    console.log(`[${new Date().toISOString()}] [${requestId}] 🤖 Using Cerebras API for ${action}`);
     
-    // Prepare headers
-    const headers = {
-      'Content-Type': 'application/json'
-    };
-    
-    // Format the messages based on prompt complexity
-    let messages = [];
-    
-    if (action === 'chatMessage') {
-      // For chat, we keep the system message and user message separate
-      messages = [
-        { role: "system", content: "You are a helpful AI learning assistant named StudyBuddy." },
-        { role: "user", content: prompt }
-      ];
-    } else {
-      // For other actions, we just send the full prompt as a user message
-      messages = [{ role: "user", content: prompt }];
-    }
-    
-    console.log(`[${new Date().toISOString()}] [${requestId}] 📤 Sending request to Hack Club API with ${messages.length} messages`);
-    
-    const response = await axios.post(HACK_CLUB_API, {
-      messages: messages,
-      stream: false
-    }, { 
-      headers,
-      timeout: REQUEST_TIMEOUT
+    // Use the client instance directly
+    const response = await client.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'llama-4-scout-17b-16e-instruct',
+      max_tokens: 8000,
     });
     
-    // Extract the response from the message content
-    const message = response.data.choices[0]?.message;
-    
-    if (!message || !message.content) {
-      console.warn(`[${new Date().toISOString()}] [${requestId}] ⚠️ Invalid or empty response from Hack Club API`);
+    if (!response.choices || !response.choices[0]?.message?.content) {
+      console.warn(`[${new Date().toISOString()}] [${requestId}] ⚠️ Invalid or empty response from Cerebras API`);
       return { response: "Sorry, I couldn't generate a response." };
     }
     
-    console.log(`[${new Date().toISOString()}] [${requestId}] ✅ Received valid response from Hack Club API`);
-    return { response: message.content };
+    console.log(`[${new Date().toISOString()}] [${requestId}] ✅ Received valid response from Cerebras API`);
+    return { response: response.choices[0].message.content };
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] [${requestId}] ❌ Error calling Hack Club API (attempt ${retries + 1}/${MAX_RETRIES + 1}):`, error.message);
-    
-    if (error.response) {
-      console.error(`[${new Date().toISOString()}] [${requestId}] Status: ${error.response.status}`);
-      console.error(`[${new Date().toISOString()}] [${requestId}] Data:`, error.response.data);
-    }
+    console.error(`[${new Date().toISOString()}] [${requestId}] ❌ Error calling Cerebras API (attempt ${retries + 1}/${MAX_RETRIES + 1}):`, error.message);
     
     if (retries < MAX_RETRIES) {
       const delay = (retries + 1) * 2000;
       console.log(`[${new Date().toISOString()}] [${requestId}] 🔄 Retrying in ${delay/1000} seconds...`);
       await new Promise(resolve => setTimeout(resolve, delay));
-      return callHackClubAPIWithRetry(prompt, action, retries + 1);
+      return callCerebrasAPIWithRetry(prompt, action, retries + 1);
     }
     
     throw error;
   }
 }
 
-// Check available models and get the best one
-async function getBestModel() {
-  const requestId = uuidv4();
-  try {
-    console.log(`[${new Date().toISOString()}] [${requestId}] 🔍 Checking available Ollama models`);
-    const response = await axios.get(`${OLLAMA_API}/tags`, { timeout: REQUEST_TIMEOUT });
-    const models = response.data.models || [];
-    
-    // Preferred models in order
-    const preferredModels = ['llama4', 'llama3', 'llama2', 'mistral'];
-    
-    for (const preferred of preferredModels) {
-      const match = models.find(m => m.name.toLowerCase().includes(preferred));
-      if (match) {
-        console.log(`[${new Date().toISOString()}] [${requestId}] ✅ Found preferred model: ${match.name}`);
-        return match.name;
-      }
-    }
-    
-    // Return first model if no preferred models found
-    if (models.length > 0) {
-      console.log(`[${new Date().toISOString()}] [${requestId}] ⚠️ No preferred models found, using: ${models[0].name}`);
-      return models[0].name;
-    }
-    
-    console.log(`[${new Date().toISOString()}] [${requestId}] ⚠️ No models found, falling back to llama2`);
-    return 'llama2'; // Default fallback
-  } catch (error) {
-    console.error(`[${new Date().toISOString()}] [${requestId}] ❌ Failed to fetch models:`, error.message);
-    return 'llama2'; // Default fallback
-  }
-}
-
-// Retry mechanism for Ollama API calls
-async function callOllamaWithRetry(payload, retries = 0) {
-  const requestId = uuidv4();
-  try {
-    const model = await getBestModel();
-    console.log(`[${new Date().toISOString()}] [${requestId}] 🤖 Using Ollama model: ${model}`);
-    
-    // Ensure we have safe limits for the API
-    const safePayload = {
-      ...payload,
-      model: model,
-      options: {
-        ...payload.options,
-        num_predict: Math.min(payload.options?.num_predict || 2048, 4096)
-      }
-    };
-    
-    const response = await axios.post(`${OLLAMA_API}/generate`, safePayload, { timeout: REQUEST_TIMEOUT });
-    
-    console.log(`[${new Date().toISOString()}] [${requestId}] ✅ Successfully called Ollama API`);
-    return response.data;
-  } catch (error) {
-    console.error(`[${new Date().toISOString()}] [${requestId}] ❌ Error calling Ollama API (attempt ${retries + 1}/${MAX_RETRIES + 1}):`, error.message);
-    
-    if (retries < MAX_RETRIES) {
-      const delay = (retries + 1) * 2000;
-      console.log(`[${new Date().toISOString()}] [${requestId}] 🔄 Retrying in ${delay/1000} seconds...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return callOllamaWithRetry(payload, retries + 1);
-    }
-    
-    throw error;
-  }
-}
-
-// Process AI prompt with either Ollama or Hack Club API
+// Process AI prompt with Cerebras API
 async function processPrompt(prompt, action, retries = 0) {
   const requestId = uuidv4();
-  // Set this to true to use Hack Club API, false to use local Ollama
-  const useHackClubAPI = true;
-  
-  console.log(`[${new Date().toISOString()}] [${requestId}] 📝 Processing prompt for action: ${action}, API: ${useHackClubAPI ? 'Hack Club' : 'Ollama'}`);
+  console.log(`[${new Date().toISOString()}] [${requestId}] 📝 Processing prompt for action: ${action}, API: Cerebras`);
   
   try {
-    if (useHackClubAPI) {
-      return await callHackClubAPIWithRetry(prompt, action, retries);
-    } else {
-      // Adjust temperature based on the action
-      const temperature = action === 'generateQuiz' ? 0.2 : 
-                        action === 'summarize' ? 0.3 : 0.7;
-      
-      // Adjust tokens based on the action                
-      const numPredict = action === 'summarize' || action === 'generateQuiz' ? 4096 : 2048;
-      
-      console.log(`[${new Date().toISOString()}] [${requestId}] 📊 Using temperature: ${temperature}, tokens: ${numPredict}`);
-      
-      const response = await callOllamaWithRetry({
-        prompt: prompt,
-        stream: false,
-        options: {
-          num_predict: numPredict,
-          temperature: temperature
-        }
-      }, retries);
-      
-      return { response: response.response || response.text || response.content || "No response generated." };
-    }
+    return await callCerebrasAPIWithRetry(prompt, action, retries);
   } catch (error) {
     console.error(`[${new Date().toISOString()}] [${requestId}] ❌ Error in processPrompt:`, error.message);
     throw new Error(`Failed to process prompt: ${error.message}`);
   }
 }
 
-// Handle requests to our local AI service
+
+
+// Add compatibility endpoint for /api/ollama that forwards to /api/ai
+// Replace the problematic compatibility endpoint with a working version
+// Add compatibility endpoint for /api/ollama that forwards to /api/ai
 app.post('/api/ai', validateApiRequest, async (req, res) => {
+  console.log(`[${new Date().toISOString()}] [${req.requestId}] ⚠️ Deprecated endpoint used: /api/ollama - handling with same logic as /api/ai`);
+  
   try {
     const { action, message, context, material, exam, materials } = req.body;
     
-    console.log(`[${new Date().toISOString()}] [${req.requestId}] 📥 Received ${action} request`);
+    console.log(`[${new Date().toISOString()}] [${req.requestId}] 📥 Received ${action} request via /api/ollama`);
     
     let prompt = "";
     
     // Create different prompts based on the action
     switch (action) {
       case 'chatMessage':
-        prompt = `Du bist ein KI-Lernassistent namens "StudyBuddy", der Studenten beim Lernen hilft. Antworte auf Deutsch. 
+        prompt = `Du bist ein KI-Lernassistent namens "LucaAcul", der Studenten beim Lernen hilft. Antworte auf Deutsch. 
                 Deine Antworten sollten hilfreich, präzise und ermunternd sein.`;
         
         if (context?.upcomingExams?.length > 0) {
@@ -318,7 +215,7 @@ app.post('/api/ai', validateApiRequest, async (req, res) => {
         }
         
         if (material?.content) {
-          const limitedContent = material.content.substring(0, 3500);
+          const limitedContent = material.content.substring(0, 12000);
           prompt += `\nDer Student lernt gerade: "${material.name}"\n\nEin Ausschnitt aus dem Inhalt: "${limitedContent}..."`;
           prompt += `\nBeziehe dich in deiner Antwort spezifisch auf dieses Material, wenn es für die Frage relevant ist.`;
         }
@@ -326,22 +223,27 @@ app.post('/api/ai', validateApiRequest, async (req, res) => {
         prompt += `\n\nFrage des Studenten: ${message}\n\nDeine hilfreiche Antwort:`;
         break;
         
+      // Handle other action types the same as in your /api/ai endpoint
       case 'summarize':
-        prompt = `Bitte erstelle eine AUSFÜHRLICHE und detaillierte strukturierte Zusammenfassung des folgenden Textes. 
-    Die Zusammenfassung sollte folgende Elemente enthalten:
-    
-    1. Eine umfassende Einleitung (4-6 Sätze)
-    2. Die Hauptthemen und wichtigsten Konzepte in detaillierter Form
-    3. Eine tiefgehende Gliederung aller relevanten Punkte mit Beispielen
-    4. Schlüsselbegriffe mit ausführlichen Definitionen und Erklärungen
-    5. Zusammenhänge zwischen den verschiedenen Konzepten
-    6. Eine kritische Einschätzung der wichtigsten Inhalte
-    
-    Formatiere deine Antwort mit Überschriften (## für Hauptüberschriften, ### für Unterüberschriften) und Aufzählungspunkten (* für Listen).
-    Nutze auch **Hervorhebungen** für wichtige Begriffe und *Kursivschrift* für Definitionen.
-    Antworte auf Deutsch und sorge für eine übersichtliche, lernfreundliche und UMFANGREICHE Formatierung.
-    
-    Text: "${material.name}"\n\n${material.content.substring(0, 12000)}..."`;
+        prompt = `Bitte erstelle eine SEHR AUSFÜHRLICHE und detaillierte strukturierte Zusammenfassung des folgenden Textes. 
+      Die Zusammenfassung MUSS MINDESTENS 1000 WÖRTER enthalten und sollte folgende Elemente enthalten:
+      
+      1. Eine umfassende Einleitung (6-8 Sätze)
+      2. Die Hauptthemen und wichtigsten Konzepte in detaillierter Form mit vielen Beispielen
+      3. Eine tiefgehende Gliederung ALLER relevanten Punkte mit Beispielen und Erläuterungen
+      4. Schlüsselbegriffe mit ausführlichen Definitionen und Erklärungen (mindestens 10 Begriffe)
+      5. Zusammenhänge zwischen den verschiedenen Konzepten mit konkreten Beispielen
+      6. Eine kritische Einschätzung und Analyse der wichtigsten Inhalte
+      7. Praktische Anwendungsbeispiele des Gelernten
+      8. Eine umfassende Zusammenfassung am Ende
+      
+      Formatiere deine Antwort mit Überschriften (## für Hauptüberschriften, ### für Unterüberschriften) und Aufzählungspunkten (* für Listen).
+      Nutze auch **Hervorhebungen** für wichtige Begriffe und *Kursivschrift* für Definitionen.
+      Antworte auf Deutsch und sorge für eine übersichtliche, lernfreundliche und SEHR UMFANGREICHE Formatierung.
+      DENKE DARAN: Die Zusammenfassung MUSS sehr ausführlich sein und mindestens 1000 Wörter umfassen und auch mindestens 5-6 Sätze pro unterkapitel enthalten.
+      Hier ist der Text, den du zusammenfassen sollst:\n\n"${material.name}"\n\n${material.content.substring(0, 20000)}...`;
+      
+      
         break;
         
       case 'generateQuiz':
@@ -366,7 +268,7 @@ app.post('/api/ai', validateApiRequest, async (req, res) => {
     Der Index der richtigen Antwort (correctAnswerIndex) muss eine Zahl zwischen 0 und 3 sein.
     Erstelle Fragen, die das gesamte Themenspektrum des Textes abdecken.
     
-    Hier ist der Text für das Quiz: "${material.name}"\n\n${material.content.substring(0, 12000)}..."`;
+    Hier ist der Text für das Quiz: "${material.name}"\n\n${material.content.substring(0, 20000)}..."`;
         break;
         
       case 'generateStudyPlan':
@@ -406,15 +308,15 @@ Formatiere deine Antwort mit HTML-Tags für eine bessere Darstellung. Verwende <
         return res.status(400).json({ success: false, error: 'Unbekannte Aktion' });
     }
     
-    console.log(`[${new Date().toISOString()}] [${req.requestId}] 📤 Sending ${action} request to AI API...`);
+    console.log(`[${new Date().toISOString()}] [${req.requestId}] 📤 Sending ${action} request to AI API via compatibility endpoint...`);
     
-    // Call API with prompt
+    // Call API with prompt - use the same mechanism as your /api/ai endpoint
     const aiResponseData = await processPrompt(prompt, action);
     
     const aiResponse = aiResponseData.response;
     console.log(`[${new Date().toISOString()}] [${req.requestId}] ✅ Got response from AI API for ${action} (${aiResponse.length} chars)`);
     
-    // Process response based on action
+    // Return the same response structure as your /api/ai endpoint
     switch (action) {
       case 'chatMessage':
         return res.json({ success: true, reply: aiResponse });
@@ -422,92 +324,92 @@ Formatiere deine Antwort mit HTML-Tags für eine bessere Darstellung. Verwende <
       case 'summarize':
         return res.json({ success: true, summary: aiResponse });
         
-      case 'generateQuiz':
-        try {
-          console.log(`[${new Date().toISOString()}] [${req.requestId}] 🔍 Attempting to parse quiz response`);
-          
-          // Better JSON extraction - look for content between curly braces
-          const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-          
-          if (!jsonMatch) {
-            console.log(`[${new Date().toISOString()}] [${req.requestId}] ❌ No JSON pattern found in the response`);
-            throw new Error("No JSON found in response");
-          }
-          
-          const jsonString = jsonMatch[0];
-          console.log(`[${new Date().toISOString()}] [${req.requestId}] 📋 Extracted JSON pattern:`, jsonString.substring(0, 100) + "...");
-          
-          let quizData;
+        case 'generateQuiz':
           try {
-            quizData = JSON.parse(jsonString);
-            console.log(`[${new Date().toISOString()}] [${req.requestId}] ✅ Successfully parsed JSON`);
-          } catch (jsonError) {
-            console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ JSON parse error:`, jsonError.message);
-            throw new Error("Invalid JSON format");
-          }
-          
-          // Validate quiz structure
-          if (!quizData.questions || !Array.isArray(quizData.questions) || quizData.questions.length === 0) {
-            console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Invalid quiz structure:`, quizData);
-            throw new Error("Invalid quiz structure");
-          }
-          
-          // Further validation and cleanup of the quiz data
-          quizData.questions = quizData.questions.map(q => {
-            // Ensure all questions have exactly 4 options
-            if (!q.options || !Array.isArray(q.options)) {
-              q.options = ["Option A", "Option B", "Option C", "Option D"];
-            } else if (q.options.length < 4) {
-              while (q.options.length < 4) {
-                q.options.push(`Option ${q.options.length + 1}`);
+            console.log(`[${new Date().toISOString()}] [${req.requestId}] 🔍 Attempting to parse quiz response in /api/ollama endpoint`);
+            
+            // Better JSON extraction - look for content between curly braces
+            const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+            
+            if (!jsonMatch) {
+              console.log(`[${new Date().toISOString()}] [${req.requestId}] ❌ No JSON pattern found in the response`);
+              throw new Error("No JSON found in response");
+            }
+            
+            const jsonString = jsonMatch[0];
+            console.log(`[${new Date().toISOString()}] [${req.requestId}] 📋 Extracted JSON pattern:`, jsonString.substring(0, 100) + "...");
+            
+            let quizData;
+            try {
+              quizData = JSON.parse(jsonString);
+              console.log(`[${new Date().toISOString()}] [${req.requestId}] ✅ Successfully parsed JSON`);
+            } catch (jsonError) {
+              console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ JSON parse error:`, jsonError.message);
+              throw new Error("Invalid JSON format");
+            }
+            
+            // Validate quiz structure
+            if (!quizData.questions || !Array.isArray(quizData.questions) || quizData.questions.length === 0) {
+              console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Invalid quiz structure:`, quizData);
+              throw new Error("Invalid quiz structure");
+            }
+            
+            // Further validation and cleanup of the quiz data
+            quizData.questions = quizData.questions.map(q => {
+              // Ensure all questions have exactly 4 options
+              if (!q.options || !Array.isArray(q.options)) {
+                q.options = ["Option A", "Option B", "Option C", "Option D"];
+              } else if (q.options.length < 4) {
+                while (q.options.length < 4) {
+                  q.options.push(`Option ${q.options.length + 1}`);
+                }
+              } else if (q.options.length > 4) {
+                q.options = q.options.slice(0, 4);
               }
-            } else if (q.options.length > 4) {
-              q.options = q.options.slice(0, 4);
+              
+              // Ensure correctAnswerIndex is valid
+              if (typeof q.correctAnswerIndex !== 'number' || 
+                q.correctAnswerIndex < 0 || 
+                q.correctAnswerIndex > 3) {
+                q.correctAnswerIndex = Math.floor(Math.random() * 4);
+              }
+              
+              return q;
+            });
+            
+            // Ensure we have exactly 20 questions
+            const TARGET_QUESTIONS = 20;
+            if (quizData.questions.length < TARGET_QUESTIONS) {
+              // Add dummy questions if we have fewer than 20
+              const neededQuestions = TARGET_QUESTIONS - quizData.questions.length;
+              for (let i = 0; i < neededQuestions; i++) {
+                quizData.questions.push({
+                  question: `Zusatzfrage ${quizData.questions.length + 1} zu "${material.name}"`,
+                  options: ["Option A", "Option B", "Option C", "Option D"],
+                  correctAnswerIndex: Math.floor(Math.random() * 4)
+                });
+              }
+            } else if (quizData.questions.length > TARGET_QUESTIONS) {
+              // Trim to 20 questions if we have more
+              quizData.questions = quizData.questions.slice(0, TARGET_QUESTIONS);
             }
             
-            // Ensure correctAnswerIndex is valid
-            if (typeof q.correctAnswerIndex !== 'number' || 
-              q.correctAnswerIndex < 0 || 
-              q.correctAnswerIndex > 3) {
-              q.correctAnswerIndex = Math.floor(Math.random() * 4);
-            }
+            return res.json({ success: true, quiz: quizData });
             
-            return q;
-          });
-          
-          // Ensure we have exactly 20 questions
-          const TARGET_QUESTIONS = 20;
-          if (quizData.questions.length < TARGET_QUESTIONS) {
-            // Add dummy questions if we have fewer than 20
-            const neededQuestions = TARGET_QUESTIONS - quizData.questions.length;
-            for (let i = 0; i < neededQuestions; i++) {
-              quizData.questions.push({
-                question: `Zusatzfrage ${quizData.questions.length + 1} zu "${material.name}"`,
+          } catch (error) {
+            console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Error parsing quiz JSON:`, error);
+            
+            // Generate a fallback quiz with 20 questions
+            const fallbackQuiz = {
+              questions: Array(20).fill(0).map((_, i) => ({
+                question: `Frage ${i+1} zu "${material.name}"`,
                 options: ["Option A", "Option B", "Option C", "Option D"],
                 correctAnswerIndex: Math.floor(Math.random() * 4)
-              });
-            }
-          } else if (quizData.questions.length > TARGET_QUESTIONS) {
-            // Trim to 20 questions if we have more
-            quizData.questions = quizData.questions.slice(0, TARGET_QUESTIONS);
+              }))
+            };
+            
+            return res.json({ success: true, quiz: fallbackQuiz });
           }
-          
-          return res.json({ success: true, quiz: quizData });
-          
-        } catch (error) {
-          console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Error parsing quiz JSON:`, error);
-          
-          // Generate a fallback quiz with 20 questions
-          const fallbackQuiz = {
-            questions: Array(20).fill(0).map((_, i) => ({
-              question: `Frage ${i+1} zu "${material.name}"`,
-              options: ["Option A", "Option B", "Option C", "Option D"],
-              correctAnswerIndex: Math.floor(Math.random() * 4)
-            }))
-          };
-          
-          return res.json({ success: true, quiz: fallbackQuiz });
-        }
         
       case 'generateStudyPlan':
         return res.json({ success: true, studyPlan: aiResponse });
@@ -520,24 +422,20 @@ Formatiere deine Antwort mit HTML-Tags für eine bessere Darstellung. Verwende <
     }
     
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Error processing request:`, error.message);
-    
-    // Determine if this is a timeout error
-    const isTimeout = error.code === 'ECONNABORTED' || 
-                      error.message.includes('timeout') ||
-                      error.message.includes('Timeout');
-    
-    res.status(isTimeout ? 504 : 500).json({ 
+    console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Error in compatibility endpoint:`, error.message);
+    res.status(500).json({ 
       success: false, 
-      error: isTimeout ? 'Die Anfrage hat zu lange gedauert' : 'Fehler bei der AI-Anfrage',
+      error: 'Fehler bei der AI-Anfrage',
       message: error.message
     });
   }
 });
 
+
+
 // Enhanced health check endpoint
 app.get('/health', (req, res) => {
-  // Calculate uptime
+  // Calculate uptimeF
   const uptime = process.uptime();
   const days = Math.floor(uptime / 86400);
   const hours = Math.floor((uptime % 86400) / 3600);
@@ -568,16 +466,21 @@ process.on('SIGTERM', () => {
 });
 
 // Start the server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`
 =======================================================
   🚀 AI Learning Assistant Server
   🔗 Running on port ${PORT}
-  🌐 API endpoint: http://localhost:${PORT}/api/ai
+  🌐 API endpoints:
+     - http://localhost:${PORT}/api/ai (primary)
+     - http://localhost:${PORT}/api/ollama (compatibility)
   ℹ️ Health check: http://localhost:${PORT}/health
   📅 Started at: ${new Date().toISOString()}
 =======================================================
   `);
+  
+  // Test the API connection on startup
+  await testCerebrasAPI();
 });
 
 // Export app for testing
