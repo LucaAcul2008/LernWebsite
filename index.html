@@ -171,49 +171,59 @@
         </div>
 
   <!-- Material Viewer Page -->
-<div id="material-viewer" class="page" role="tabpanel">
+ <!-- Material Viewer Page -->
+ <div id="material-viewer" class="page" role="tabpanel">
     <div class="material-header">
-      <h2 id="material-title">Material Title</h2>
+      <h2 id="material-title">Material Titel</h2>
       <div class="material-actions">
-        <button id="generate-summary-btn" class="btn-primary">
-          <i class="fas fa-magic"></i> Zusammenfassung
+        <!-- Diese Buttons sind für Aktionen auf das GESAMTE Material gedacht -->
+        <button id="regenerate-summary-btn" class="btn-primary"> <!-- ID geändert für Klarheit, falls ein anderer "generate" Button existiert -->
+          <i class="fas fa-magic"></i> Zusammenfassung neu erstellen
         </button>
         <button id="generate-quiz-btn" class="btn-secondary">
-          <i class="fas fa-question-circle"></i> Quiz
+          <i class="fas fa-question-circle"></i> Quiz erstellen
         </button>
         <button id="mark-completed-btn" class="btn-accent">
           <i class="fas fa-check"></i> Als abgeschlossen markieren
         </button>
         <button id="back-to-materials-btn" class="btn-text">
-          <i class="fas fa-arrow-left"></i> Zurück
+          <i class="fas fa-arrow-left"></i> Zurück zu Materialien
         </button>
       </div>
     </div>
     
-    <div class="material-content">
+    <div class="material-content-tabs"> <!-- Umbenannt für Klarheit -->
       <div class="tabs">
-        <button class="tab active" data-tab="pdf">PDF</button>
-        <button class="tab" data-tab="summary">Zusammenfassung</button>
-        <button class="tab" data-tab="notes">Notizen</button>
+        <button class="tab active" data-tab="pdf"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="tab" data-tab="summary"><i class="fas fa-file-alt"></i> Zusammenfassung</button>
+        <button class="tab" data-tab="notes"><i class="fas fa-edit"></i> Notizen</button>
       </div>
       
-      <div id="pdf-content" class="tab-content active">
-        <div id="pdf-renderer"></div>
-      </div>
-      
-      <div id="summary-content" class="tab-content">
-        <div class="loading-spinner hidden">
-          <i class="fas fa-spinner fa-spin"></i>
-          <p>Zusammenfassung wird erstellt...</p>
+      <div class="tab-content-container">
+        <div id="pdf-content" class="tab-content tab-pane active"> <!-- Klasse tab-pane hinzugefügt -->
+          <div id="pdf-renderer">
+            <!-- PDF wird hier gerendert -->
+          </div>
+          <div id="pdf-navigation" class="pdf-navigation">
+            <!-- PDF Navigation (vor/zurück) wird hier eingefügt -->
+          </div>
         </div>
-        <div id="summary-text"></div>
-      </div>
-      
-      <div id="notes-content" class="tab-content">
-        <textarea id="notes-editor" placeholder="Notizen eingeben..."></textarea>
-        <button id="save-notes-btn" class="btn-primary">
-          <i class="fas fa-save"></i> Speichern
-        </button>
+        
+        <div id="summary-content" class="tab-content tab-pane"> <!-- Klasse tab-pane hinzugefügt -->
+          <!-- Status-Element für generateSummary -->
+          <div id="summary-status" class="summary-status"></div>
+          <!-- Text-Element, wo die Zusammenfassung oder der "Erstellen"-Button angezeigt wird -->
+          <div id="summary-text-container"> <!-- Wrapper für den Inhalt -->
+            <!-- Inhalt wird von app.js hier eingefügt (entweder Text oder "Erstellen"-Button) -->
+          </div>
+        </div>
+        
+        <div id="notes-content" class="tab-content tab-pane"> <!-- Klasse tab-pane hinzugefügt -->
+          <textarea id="notes-editor" placeholder="Deine Notizen hier..."></textarea>
+          <button id="save-notes-btn" class="btn-primary">
+            <i class="fas fa-save"></i> Notizen speichern
+          </button>
+        </div>
       </div>
     </div>
   </div>
