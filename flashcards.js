@@ -221,17 +221,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (finishSessionBtn) finishSessionBtn.addEventListener('click', showStudySummary);
 
 
-   // Define escapeHtml utility function first
-    const escapeHtml = window.app && typeof window.app.escapeHtml === 'function' 
-        ? window.app.escapeHtml 
-        : function(unsafe) { // Fallback simple escape
-            return unsafe
-                 .replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;")
-                 .replace(/"/g, "&quot;")
-                 .replace(/'/g, "&#039;");
-        };
 
     // Initialisierung
     loadFlashcardSets();
@@ -448,21 +437,58 @@ document.addEventListener('DOMContentLoaded', function () {
         else if (viewName === 'editor' && editorView) editorView.classList.remove('hidden');
         else if (viewName === 'study' && studyView) studyView.classList.remove('hidden');
     }
+
+    // Hilfsfunktion zum sicheren Escapen von HTML
+    function escapeHtml(unsafe) {
+        if (typeof unsafe !== 'string') {
+            console.warn("escapeHtml: Input was not a string, returning empty string. Input:", unsafe);
+            return '';
+        }
+        return unsafe
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+    }
     
-    function prepareEditorWithAICards(sourceMaterialName, cardsData) {
+   function prepareEditorWithAICards(sourceMaterialName, cardsData) {
         editingSet = null; // KI-Karten erstellen immer ein neues Set (oder Entwurf)
-        setNameInput.value = `KI-Karten für: ${escapeHtml(sourceMaterialName)}`;
-        cardsEditorContainer.innerHTML = ''; // Vorherige Karten löschen
+        
+        if (setNameInput) {
+            setNameInput.value = `KI-Karten für: ${escapeHtml(sourceMaterialName)}`;
+        } else {
+            console.error("prepareEditorWithAICards: setNameInput ist null.");
+        }
+
+        if (cardsEditorContainer) {
+            cardsEditorContainer.innerHTML = ''; // Vorherige Karten löschen
+        } else {
+            console.error("prepareEditorWithAICards: cardsEditorContainer ist null.");
+            // Wenn der Container fehlt, können keine Karten hinzugefügt werden.
+            // Es ist sinnvoll, hier abzubrechen oder eine Fehlermeldung anzuzeigen.
+            if (window.app && window.app.showNotification) {
+                window.app.showNotification("Systemfehler", "Lernkarten-Editor konnte nicht geladen werden.", "error");
+            }
+            return;
+        }
 
         // HINWEIS FÜR DEN BENUTZER EINFÜGEN
+        // Zuerst prüfen, ob schon eine Nachricht da ist und diese ggf. entfernen
+        if (editorView) { // editorView ist der Container für den gesamten Editor-Bereich
+            const existingInfoMessages = editorView.querySelectorAll('.editor-info-message');
+            existingInfoMessages.forEach(msg => msg.remove());
+        }
+
         const editorInfoMessage = document.createElement('p');
         editorInfoMessage.className = 'editor-info-message'; // Klasse für Styling hinzufügen
         editorInfoMessage.innerHTML = '<i class="fas fa-info-circle"></i> Dies sind KI-generierte Lernkarten. Bitte überprüfe und bearbeite sie bei Bedarf, bevor du sie speicherst.';
+        
         // Stelle sicher, dass die Nachricht vor den Kartenfeldern, aber innerhalb des Editor-Containers platziert wird.
         // Du könntest sie auch direkt über 'cardsEditorContainer' platzieren, je nach gewünschtem Layout.
         if (editorView && editorView.querySelector('#flashcard-set-editor-title')) { // Finde ein Element, vor dem es eingefügt werden kann
             editorView.querySelector('#flashcard-set-editor-title').insertAdjacentElement('afterend', editorInfoMessage);
-        } else { // Fallback, falls das obige Element nicht da ist
+        } else if (cardsEditorContainer) { // Fallback, falls das obige Element nicht da ist
             cardsEditorContainer.insertAdjacentElement('beforebegin', editorInfoMessage);
         }
 
@@ -478,23 +504,16 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             addCardEditFields(); // Füge eine leere Karte hinzu, wenn KI nichts liefert
             if (window.app && window.app.showNotification) {
-                app.showNotification("Info", "KI konnte keine Karten generieren oder das Format war unerwartet. Bitte manuell erstellen oder anpassen.", "info");
+                window.app.showNotification("Info", "KI konnte keine Karten generieren oder das Format war unerwartet. Bitte manuell erstellen oder anpassen.", "info");
             }
         }
-        const editorTitleEl = document.getElementById('flashcard-set-editor-title');
-        if (editorTitleEl) editorTitleEl.textContent = "KI-generiertes Lernkarten-Set (Entwurf)";
         
-        // Entferne eine eventuell vorhandene alte Info-Nachricht, bevor eine neue Ansicht gezeigt wird
-        // (oder stelle sicher, dass sie nur einmal hinzugefügt wird)
-        // Dies ist eine einfache Implementierung; eine robustere Lösung würde die Nachricht beim Verlassen des Editors entfernen.
-        const existingInfoMessages = editorView ? editorView.querySelectorAll('.editor-info-message') : [];
-        if (existingInfoMessages.length > 1) { // Wenn mehr als eine da ist (durch mehrfaches Aufrufen)
-            for(let i = 0; i < existingInfoMessages.length -1; i++) {
-                existingInfoMessages[i].remove();
-            }
+        const editorTitleEl = document.getElementById('flashcard-set-editor-title');
+        if (editorTitleEl) {
+            editorTitleEl.textContent = "KI-generiertes Lernkarten-Set (Entwurf)";
         }
-
-        showView('editor');
+        
+        showView('editor'); // Zeige die Editor-Ansicht
     }
 
 

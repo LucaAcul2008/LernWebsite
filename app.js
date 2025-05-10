@@ -510,86 +510,58 @@ document.addEventListener("DOMContentLoaded", function () {
 
     
 
-    generateAIFlashcards: function (material) {
-      // Deine komplette generateAIFlashcards Implementierung (siehe #attachment_app_js_context_1 Zeile 514)
-      if (!material || !material.content) {
+   generateAIFlashcards: function (material) {
+  if (!material || !material.content) {
+    this.showNotification(
+      "Fehler",
+      "Kein Materialinhalt zum Erstellen von Lernkarten vorhanden.",
+      "error"
+    );
+    return;
+  }
+  this.showNotification(
+    "Info",
+    "Generiere Lernkarten mit KI... Dies kann einen Moment dauern.",
+    "info"
+  );
+
+  this.callOllamaAPI({
+    action: "generateFlashcards",
+    material: {
+      id: material.id,
+      name: material.name,
+      content: material.content,
+    },
+  })
+    .then((response) => {
+      if (response && response.success && response.flashcards) {
+        if (window.app && window.app.flashcards && typeof window.app.flashcards.prepareEditorWithAICards === 'function') {
+          window.app.flashcards.prepareEditorWithAICards(material.name, response.flashcards);
+          this.showPage('flashcards'); // Navigate to the flashcards page
+          // The flashcards.js module will now handle showing the editor view
+          this.showNotification("Erfolg", "KI-Lernkarten wurden generiert und sind bereit zur Überprüfung.", "success");
+        } else {
+          console.error("generateAIFlashcards FEHLER: Flashcard-Modul oder prepareEditorWithAICards Funktion nicht gefunden.");
+          this.showNotification("Fehler", "Lernkarten konnten nicht angezeigt werden.", "error");
+        }
+      } else {
+        console.error("generateAIFlashcards FEHLER: Ungültige oder fehlende Antwort von API.", response);
         this.showNotification(
-          "Fehler",
-          "Kein Materialinhalt zum Erstellen von Lernkarten vorhanden.",
+          "Fehler bei KI-Antwort",
+          response.error || "Lernkarten konnten nicht generiert werden. Überprüfe die Server-Antwort.",
           "error"
         );
-        return;
       }
+    })
+    .catch((error) => {
+      console.error("generateAIFlashcards FEHLER beim API-Aufruf:", error);
       this.showNotification(
-        "Info",
-        "Generiere Lernkarten mit KI... Dies kann einen Moment dauern.",
-        "info"
+        "Fehler bei KI-Anfrage",
+        `Details: ${error.message || 'Unbekannter Fehler'}`,
+        "error"
       );
-
-      this.callOllamaAPI({
-        action: "generateFlashcards",
-        material: {
-          id: material.id,
-          name: material.name,
-          content: material.content,
-        },
-      })
-        .then((response) => {
-          console.log("generateAIFlashcards: Antwort von API erhalten:", response);
-          if (
-            response &&
-            response.success &&
-            response.flashcards &&
-            response.flashcards.length > 0
-          ) {
-            this.showNotification(
-              "Erfolg",
-              `${response.flashcards.length} Lernkarten wurden von der KI erstellt.`,
-              "success"
-            );
-
-            if (
-              window.app &&
-              window.app.flashcards &&
-              typeof window.app.flashcards.prepareEditorWithAICards === "function"
-            ) {
-              this.showPage("flashcards");
-              window.app.flashcards.prepareEditorWithAICards(
-                material.name,
-                response.flashcards
-              );
-            } else {
-              console.error(
-                "generateAIFlashcards FEHLER: Flashcard-Modul oder prepareEditorWithAICards-Funktion nicht verfügbar. window.app.flashcards:",
-                window.app && window.app.flashcards ? window.app.flashcards : (window.app ? "window.app.flashcards ist undefined" : "window.app ist nicht definiert")
-              );
-              this.showNotification(
-                "Fehler",
-                "Lernkarten-Modul ist nicht bereit. Bitte versuche es später erneut oder lade die Seite neu.",
-                "error"
-              );
-            }
-          } else {
-            let errorMessage = "KI konnte keine Lernkarten generieren oder das Format war unerwartet.";
-            if (response && response.error) {
-                errorMessage = response.error;
-            } else if (response && response.success && (!response.flashcards || response.flashcards.length === 0)) {
-                errorMessage = "Die KI hat keine Lernkarten für dieses Material zurückgegeben.";
-            }
-            console.error("generateAIFlashcards FEHLER:", errorMessage, "Antwort:", response);
-            // throw new Error(errorMessage); // Besser: Notification anzeigen
-            this.showNotification("Fehler bei KI-Antwort", errorMessage, "error");
-          }
-        })
-        .catch((error) => {
-          console.error("generateAIFlashcards FEHLER beim API-Aufruf:", error);
-          this.showNotification(
-            "Fehler bei KI-Anfrage",
-            `Details: ${error.message || 'Unbekannter Fehler'}`,
-            "error"
-          );
-        });
-    },
+    });
+},
 
     activateTab: function (tabIdToShow) {
       const viewer = document.getElementById("material-viewer");

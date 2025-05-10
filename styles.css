@@ -2375,3 +2375,46 @@ button:disabled {
     gap: 15px;
     margin-top: 20px;
 }
+/* Theme Toggle Button Base Styles */
+.theme-toggle {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary); /* Use a CSS variable for text color */
+    font-size: 1.2rem; /* Adjust as needed */
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background-color 0.2s, color 0.2s;
+    display: inline-flex; /* Helps align icon */
+    align-items: center;
+    justify-content: center;
+    width: 40px; /* Ensure consistent size */
+    height: 40px; /* Ensure consistent size */
+}
+
+.theme-toggle:hover {
+    background-color: var(--hover-bg-color, rgba(0, 0, 0, 0.05)); /* Default light hover */
+    color: var(--primary-color);
+}
+
+.theme-toggle .fa-sun {
+    display: none; /* Sun icon hidden by default (in light mode) */
+}
+
+.theme-toggle .fa-moon {
+    display: inline-block; /* Moon icon visible by default (in light mode) */
+}
+
+/* STYLING FÜR DIE INFO-NACHRICHT (Flashcard Editor) */
+.editor-info-message {
+    background-color: var(--info-bg-light, #e7f3fe); /* Light blue */
+    color: var(--info-text-light, #31708f); /* Darker blue for text */
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+    border: 1px solid var(--info-border-light, #bce8f1);
+}
+.editor-info-message i {
+    margin-right: 8px;
+}
