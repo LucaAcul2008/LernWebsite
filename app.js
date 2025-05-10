@@ -7,6 +7,135 @@ window.fetch = function (url, options) {
   return originalFetch(url, options);
 };
 
+const MASTER_PASSWORD_HASH_KEY = '2b014e88450f46808152f0b096137513718902189962b11958588a790679895d'; // Hash for "lucaacul"
+let appIsAuthenticated = false;
+
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
+
+async function verifyPassword(enteredPassword, storedHash) {
+  const hashedEnteredPassword = await hashPassword(enteredPassword);
+  return hashedEnteredPassword === storedHash;
+}
+
+function showAuthError(view, message) {
+    const errorElId = view === 'set' ? 'set-password-error' : 'login-error';
+    const errorEl = document.getElementById(errorElId);
+    if (errorEl) {
+        errorEl.textContent = message;
+    }
+}
+
+function clearAuthErrors() {
+    const setErrorEl = document.getElementById('set-password-error');
+    const loginErrorEl = document.getElementById('login-error');
+    if (setErrorEl) setErrorEl.textContent = '';
+    if (loginErrorEl) loginErrorEl.textContent = '';
+}
+
+async function handleSetMasterPassword() {
+  clearAuthErrors();
+  const passwordInput = document.getElementById('master-password-set');
+  const confirmInput = document.getElementById('master-password-confirm');
+  const password = passwordInput.value;
+  const confirm = confirmInput.value;
+
+  if (!password || !confirm) {
+    showAuthError('set', 'Bitte fülle beide Passwortfelder aus.');
+    return;
+  }
+  if (password !== confirm) {
+    showAuthError('set', 'Die Passwörter stimmen nicht überein.');
+    return;
+  }
+  if (password.length < 8) {
+    showAuthError('set', 'Das Passwort muss mindestens 8 Zeichen lang sein.');
+    return;
+  }
+
+  try {
+    const hashedPassword = await hashPassword(password);
+    localStorage.setItem(MASTER_PASSWORD_HASH_KEY, hashedPassword);
+    passwordInput.value = ''; // Clear fields
+    confirmInput.value = '';
+    window.app.showNotification('Gespeichert', 'Master-Passwort erfolgreich festgelegt.', 'success');
+    await window.app.authenticateApp(); // Proceed to unlock
+  } catch (error) {
+    console.error("Fehler beim Hashen des Passworts:", error);
+    showAuthError('set', 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
+    window.app.showNotification('Fehler', 'Passwort konnte nicht gespeichert werden.', 'error');
+  }
+}
+
+async function handleUnlockApp() {
+  clearAuthErrors();
+  const passwordInput = document.getElementById('master-password-login');
+  const enteredPassword = passwordInput.value;
+  const storedHash = localStorage.getItem(MASTER_PASSWORD_HASH_KEY);
+
+  if (!enteredPassword) {
+    showAuthError('login', 'Bitte gib dein Passwort ein.');
+    return;
+  }
+  if (!storedHash) { // Should not happen if UI is correct, but as a safeguard
+    console.error("Kein gespeicherter Hash gefunden zum Entsperren.");
+    showAuthError('login', 'Fehler: Kein Master-Passwort ist gesetzt.');
+    // Switch to set password view
+    document.getElementById('login-view').style.display = 'none';
+    document.getElementById('set-password-view').style.display = 'block';
+    return;
+  }
+
+  try {
+    const match = await verifyPassword(enteredPassword, storedHash);
+    if (match) {
+      passwordInput.value = ''; // Clear field
+      await window.app.authenticateApp();
+    } else {
+      showAuthError('login', 'Falsches Passwort. Bitte versuche es erneut.');
+    }
+  } catch (error) {
+    console.error("Fehler beim Verifizieren des Passworts:", error);
+    showAuthError('login', 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
+  }
+}
+
+function handleLogout() {
+  appIsAuthenticated = false;
+  document.getElementById('main-content').style.display = 'none';
+  document.getElementById('auth-overlay').style.display = 'flex';
+  document.getElementById('login-view').style.display = 'block';
+  document.getElementById('set-password-view').style.display = 'none';
+  const logoutBtn = document.getElementById('logout-btn');
+  if(logoutBtn) logoutBtn.style.display = 'none';
+  // Potentially clear sensitive in-memory data if any was loaded
+  console.log("App gesperrt.");
+  window.app.showNotification('Abgemeldet', 'Die Anwendung wurde gesperrt.', 'info');
+}
+
+function handleResetPasswordPrompt() {
+    if (confirm("Möchtest du das Master-Passwort wirklich zurücksetzen? Alle deine lokal gespeicherten Daten (Materialien, Quiz, Lernkarten etc.) bleiben erhalten, aber du musst ein neues Passwort festlegen, um wieder darauf zugreifen zu können.")) {
+        localStorage.removeItem(MASTER_PASSWORD_HASH_KEY);
+        appIsAuthenticated = false; // Ensure app is locked
+        
+        // Hide login view, show set password view
+        document.getElementById('login-view').style.display = 'none';
+        document.getElementById('set-password-view').style.display = 'block';
+        document.getElementById('auth-overlay').style.display = 'flex'; // Ensure overlay is visible
+        document.getElementById('main-content').style.display = 'none'; // Ensure main content is hidden
+        const logoutBtn = document.getElementById('logout-btn');
+        if(logoutBtn) logoutBtn.style.display = 'none';
+
+        window.app.showNotification('Zurückgesetzt', 'Master-Passwort wurde zurückgesetzt. Bitte lege ein neues fest.', 'info');
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   console.log("DOMContentLoaded (app.js): Event gefeuert.");
 
@@ -23,30 +152,183 @@ document.addEventListener("DOMContentLoaded", function () {
     db: null, // Für die IndexedDB Instanz
     _eventListenersInitialized: false, // Add this flag
 
-      init: function () {
-      console.log("App init: Initialisiere App...");
-      this.loadData();
-      this.initIndexedDB()
-        .then(() => {
-          console.log("App init: IndexedDB initialisiert, lade PDF-Daten.");
-          this.loadPdfDataFromIndexedDB();
-        })
-        .catch((error) => {
-          console.error(
-            "App init: Fehler bei der Initialisierung von IndexedDB:",
-            error
-          );
-        });
-      this.updateUI();
-      this.showPage("dashboard");
-      this.setupEventListeners(); // Called in init
-      // this.initFlashcards(); // REMOVED: flashcards.js handles its own initialization
-      this.updatePomodoroTasksDropdown();
-      console.log("App init: App Initialisierung abgeschlossen.");
+       // --- MODIFIED init METHOD ---
+    init: async function () {
+      console.log("App init: Initialisiere App-Grundgerüst und Authentifizierung...");
+
+      // Setup event listeners for authentication FIRST
+      document.getElementById('save-master-password-btn').addEventListener('click', () => this.handleSetMasterPassword());
+      document.getElementById('master-password-set').addEventListener('keypress', (e) => { if (e.key === 'Enter') this.handleSetMasterPassword(); });
+      document.getElementById('master-password-confirm').addEventListener('keypress', (e) => { if (e.key === 'Enter') this.handleSetMasterPassword(); });
+
+      document.getElementById('unlock-app-btn').addEventListener('click', () => this.handleUnlockApp());
+      document.getElementById('master-password-login').addEventListener('keypress', (e) => { if (e.key === 'Enter') this.handleUnlockApp(); });
+      
+      const logoutButton = document.getElementById('logout-btn');
+      if (logoutButton) logoutButton.addEventListener('click', () => this.handleLogout());
+
+      const resetPasswordPromptButton = document.getElementById('reset-password-prompt-btn');
+      if(resetPasswordPromptButton) resetPasswordPromptButton.addEventListener('click', () => this.handleResetPasswordPrompt());
+
+      // Initialize IndexedDB early, as it's needed by loadPdfDataFromIndexedDB
+      try {
+        await this.initIndexedDB(); // Ensure this.db is set
+        console.log("App init: IndexedDB initialisiert.");
+      } catch (error) {
+        console.error("App init: Fehler bei der Initialisierung von IndexedDB:", error);
+        this.showNotification("Datenbankfehler", "Lokale Datenbank konnte nicht initialisiert werden.", "error");
+        // Decide if app can proceed without IndexedDB or show critical error
+      }
+
+      // Perform initial authentication check
+      await this.checkInitialAuth();
+
+      // General UI setup that does NOT depend on loaded data can go here
+      // For example, theme toggle, main navigation structure (if static)
+      if (typeof this.setupNavigation === "function") this.setupNavigation(); // If you have this
+      if (typeof this.setupThemeToggle === "function") this.setupThemeToggle(); // If you have this
+      if (typeof this.updateDateTime === "function") { // If you have this
+          this.updateDateTime();
+          setInterval(this.updateDateTime, 60000);
+      }
+      // Other non-data-dependent UI initializations...
+
+      // The main data loading and UI updates (updateUI, showPage('dashboard'), etc.)
+      // are now handled by `authenticateApp` after successful login/password set.
+      
+      // Call setupEventListeners for general UI elements that are always present
+      // Ensure it's only called once if it has its own guard.
+      if (typeof this.setupEventListeners === "function" && !this._eventListenersInitialized) {
+          this.setupEventListeners();
+      }
+
+
+      console.log("App init: Grundinitialisierung abgeschlossen. Warte auf Benutzerauthentifizierung.");
     },
 
-    loadData: function () {
-      console.log("loadData: Lade Daten aus localStorage.");
+    async handleSetMasterPassword() {
+      clearAuthErrors();
+      const passwordInput = document.getElementById('master-password-set');
+      const confirmInput = document.getElementById('master-password-confirm');
+      const password = passwordInput.value;
+      const confirm = confirmInput.value;
+
+      if (!password || !confirm) {
+        showAuthError('set', 'Bitte fülle beide Passwortfelder aus.');
+        return;
+      }
+      if (password !== confirm) {
+        showAuthError('set', 'Die Passwörter stimmen nicht überein.');
+        return;
+      }
+      if (password.length < 8) { // Basic password policy
+        showAuthError('set', 'Das Passwort muss mindestens 8 Zeichen lang sein.');
+        return;
+      }
+
+      try {
+        const hashedPassword = await hashPassword(password);
+        localStorage.setItem(MASTER_PASSWORD_HASH_KEY, hashedPassword);
+        passwordInput.value = '';
+        confirmInput.value = '';
+        this.showNotification('Gespeichert', 'Master-Passwort erfolgreich festgelegt.', 'success');
+        await this.authenticateApp(); // Unlock the app
+      } catch (error) {
+        console.error("Fehler beim Hashen des Passworts:", error);
+        showAuthError('set', 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
+        this.showNotification('Fehler', 'Passwort konnte nicht gespeichert werden.', 'error');
+      }
+    },
+
+    async handleUnlockApp() {
+      clearAuthErrors();
+      const passwordInput = document.getElementById('master-password-login');
+      const enteredPassword = passwordInput.value;
+      const storedHash = localStorage.getItem(MASTER_PASSWORD_HASH_KEY);
+
+      if (!enteredPassword) {
+        showAuthError('login', 'Bitte gib dein Passwort ein.');
+        return;
+      }
+      if (!storedHash) {
+        console.error("Kein gespeicherter Hash gefunden zum Entsperren.");
+        showAuthError('login', 'Fehler: Kein Master-Passwort ist gesetzt.');
+        document.getElementById('login-view').style.display = 'none';
+        document.getElementById('set-password-view').style.display = 'block';
+        document.getElementById('master-password-set').focus();
+        return;
+      }
+
+      try {
+        const match = await verifyPassword(enteredPassword, storedHash);
+        if (match) {
+          passwordInput.value = '';
+          await this.authenticateApp(); // Unlock the app
+        } else {
+          showAuthError('login', 'Falsches Passwort. Bitte versuche es erneut.');
+          passwordInput.select();
+        }
+      } catch (error) {
+        console.error("Fehler beim Verifizieren des Passworts:", error);
+        showAuthError('login', 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
+      }
+    },
+
+    handleLogout() {
+      appIsAuthenticated = false;
+      document.getElementById('main-content').style.display = 'none';
+      document.getElementById('auth-overlay').style.display = 'flex';
+      document.getElementById('login-view').style.display = 'block';
+      document.getElementById('set-password-view').style.display = 'none';
+      document.getElementById('master-password-login').value = ''; // Clear login field
+      document.getElementById('master-password-login').focus();
+      
+      const logoutBtn = document.getElementById('logout-btn');
+      if(logoutBtn) logoutBtn.style.display = 'none';
+      
+      console.log("App gesperrt.");
+      this.showNotification('Abgemeldet', 'Die Anwendung wurde gesperrt.', 'info');
+      // Optionally, clear sensitive in-memory data here if needed
+      // For example: this.materials = []; this.quizzes = []; etc.
+      // Then, when authenticateApp is called, it would reload everything.
+    },
+
+    handleResetPasswordPrompt() {
+        if (confirm("Möchtest du das Master-Passwort wirklich zurücksetzen?\n\nAlle deine lokal gespeicherten Daten (Materialien, Quizze, Lernkarten etc.) bleiben erhalten, aber du musst ein neues Passwort festlegen, um wieder darauf zugreifen zu können.\n\nDiese Aktion kann nicht rückgängig gemacht werden.")) {
+            localStorage.removeItem(MASTER_PASSWORD_HASH_KEY);
+            appIsAuthenticated = false; 
+            
+            document.getElementById('login-view').style.display = 'none';
+            document.getElementById('set-password-view').style.display = 'block';
+            document.getElementById('auth-overlay').style.display = 'flex';
+            document.getElementById('main-content').style.display = 'none';
+            document.getElementById('master-password-set').value = '';
+            document.getElementById('master-password-confirm').value = '';
+            document.getElementById('master-password-set').focus();
+            
+            const logoutBtn = document.getElementById('logout-btn');
+            if(logoutBtn) logoutBtn.style.display = 'none';
+
+            this.showNotification('Zurückgesetzt', 'Master-Passwort wurde zurückgesetzt. Bitte lege ein neues fest.', 'info');
+        }
+    },
+
+    async authenticateApp() {
+      appIsAuthenticated = true;
+      document.getElementById('auth-overlay').style.display = 'none';
+      document.getElementById('main-content').style.display = 'block'; // Or 'flex' etc.
+      
+      const logoutBtn = document.getElementById('logout-btn');
+      if(logoutBtn) logoutBtn.style.display = 'flex'; // Or 'block'
+
+      console.log("App erfolgreich entsperrt. Lade Anwendungsdaten...");
+
+      // --- MOVED DATA LOADING LOGIC HERE ---
+      // This is where you call functions that load your app's data
+      // and perform initial UI setup that depends on that data.
+      // This replaces the old content of your `loadData` function.
+
+      console.log("authenticateApp: Lade Daten aus localStorage.");
       const materialsData = localStorage.getItem("studyMaterials");
       if (materialsData) {
         this.materials = JSON.parse(materialsData);
@@ -59,22 +341,95 @@ document.addEventListener("DOMContentLoaded", function () {
       if (examsData) {
         this.exams = JSON.parse(examsData);
       }
-      const foldersData = localStorage.getItem("studyFolders"); // ADDED
+      const foldersData = localStorage.getItem("studyFolders");
       if (foldersData) {
-        // ADDED
-        this.folders = JSON.parse(foldersData); // ADDED
-      } // ADDED
-      // Load flashcard sets (delegated to flashcards.js)
-      if (
-        window.flashcardsApp &&
-        typeof window.flashcardsApp.loadSets === "function"
-      ) {
-        window.flashcardsApp.loadSets();
+        this.folders = JSON.parse(foldersData);
       }
-      this.loadPdfDataFromIndexedDB(); // Load PDF data from IndexedDB
-      this.updateUI();
-      this.updateFoldersList(); // ADDED: Update folders display
+
+      // Load flashcard sets (delegated to flashcards.js)
+      // Ensure flashcardsApp or window.app.flashcards is available
+      if (window.app.flashcards && typeof window.app.flashcards.loadSets === "function") {
+        window.app.flashcards.loadSets();
+      } else if (window.flashcardsApp && typeof window.flashcardsApp.loadSets === "function") { // Fallback for older structure
+        window.flashcardsApp.loadSets();
+      } else {
+        console.warn("Flashcard loading function not found.");
+      }
+      
+      // Load PDF data from IndexedDB (ensure initIndexedDB was called if needed)
+      if (this.db) { // Check if IndexedDB is initialized
+          await this.loadPdfDataFromIndexedDB();
+      } else {
+          console.warn("IndexedDB not initialized, skipping PDF data load from DB in authenticateApp.");
+          // You might want to call initIndexedDB here if it's safe to do so
+          // await this.initIndexedDB().then(() => this.loadPdfDataFromIndexedDB());
+      }
+
+      this.updateUI(); // Update UI based on loaded data
+      this.updateFoldersList(); // Update folders display
+      this.showPage("dashboard"); // Show default page after authentication
+      
+      // If event listeners depend on loaded data, ensure they are set up or re-evaluated
+      // this.setupEventListeners(); // Call this if it wasn't called in init or needs re-running
+      
+      console.log("authenticateApp: Anwendungsdaten geladen und UI aktualisiert.");
     },
+
+    async checkInitialAuth() {
+      const storedHash = localStorage.getItem(MASTER_PASSWORD_HASH_KEY);
+      const authOverlay = document.getElementById('auth-overlay');
+      const loginView = document.getElementById('login-view');
+      const setPasswordView = document.getElementById('set-password-view');
+      const mainContent = document.getElementById('main-content');
+      const logoutBtn = document.getElementById('logout-btn');
+
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      mainContent.style.display = 'none';
+      authOverlay.style.display = 'flex';
+      clearAuthErrors();
+
+      if (storedHash) {
+        loginView.style.display = 'block';
+        setPasswordView.style.display = 'none';
+        document.getElementById('master-password-login').focus();
+      } else {
+        loginView.style.display = 'none';
+        setPasswordView.style.display = 'block';
+        document.getElementById('master-password-set').focus();
+      }
+    },
+
+    // loadData: function () {
+    //   console.log("loadData: Lade Daten aus localStorage.");
+    //   const materialsData = localStorage.getItem("studyMaterials");
+    //   if (materialsData) {
+    //     this.materials = JSON.parse(materialsData);
+    //   }
+    //   const quizzesData = localStorage.getItem("studyQuizzes");
+    //   if (quizzesData) {
+    //     this.quizzes = JSON.parse(quizzesData);
+    //   }
+    //   const examsData = localStorage.getItem("studyExams");
+    //   if (examsData) {
+    //     this.exams = JSON.parse(examsData);
+    //   }
+    //   const foldersData = localStorage.getItem("studyFolders"); // ADDED
+    //   if (foldersData) {
+    //     // ADDED
+    //     this.folders = JSON.parse(foldersData); // ADDED
+    //   } // ADDED
+    //   // Load flashcard sets (delegated to flashcards.js)
+    //   if (
+    //     window.flashcardsApp &&
+    //     typeof window.flashcardsApp.loadSets === "function"
+    //   ) {
+    //     window.flashcardsApp.loadSets();
+    //   }
+    //   this.loadPdfDataFromIndexedDB(); // Load PDF data from IndexedDB
+    //   this.updateUI();
+    //   this.updateFoldersList(); // ADDED: Update folders display
+    // },
+    
 
     saveData: function () {
       console.log("saveData: Speichere Daten in localStorage.");
@@ -3192,83 +3547,20 @@ document.addEventListener("DOMContentLoaded", function () {
   }; // End of appCoreLogic
 
   if (typeof window.app === "undefined") {
-    console.log(
-      "DOMContentLoaded (app.js): window.app nicht vorhanden, erstelle es."
-    );
+    console.log("DOMContentLoaded (app.js): window.app nicht vorhanden, erstelle es.");
     window.app = {};
   } else {
-    console.log(
-      "DOMContentLoaded (app.js): window.app bereits vorhanden, erweitere es."
-    );
+    console.log("DOMContentLoaded (app.js): window.app bereits vorhanden, erweitere es.");
   }
 
   Object.assign(window.app, appCoreLogic);
-  console.log(
-    "DOMContentLoaded (app.js): window.app wurde mit appCoreLogic erweitert."
-  );
+  console.log("DOMContentLoaded (app.js): window.app wurde mit appCoreLogic erweitert.");
 
-  // Enhance window.app.showPage function to handle alternative IDs and missing pages
-  if (window.app && typeof window.app.showPage === "function") {
-    const originalShowPageGlobal = window.app.showPage;
-    window.app.showPage = function (pageIdToShow) {
-      console.log(`Attempting to show page (enhanced global): ${pageIdToShow}`);
-      let currentPageId = pageIdToShow;
-
-      // Handle material view ID inconsistency
-      if (currentPageId === "material-view") {
-        console.log("Redirecting global showPage to material-viewer");
-        currentPageId = "material-viewer";
-      }
-
-      // Check if page exists before trying to show it; if not, create a placeholder
-      const pageElement = document.getElementById(currentPageId);
-      if (!pageElement) {
-        console.error(
-          `Page with ID "${currentPageId}" not found. Adding safety div.`
-        );
-        const placeholder = document.createElement("div");
-        placeholder.id = currentPageId;
-        placeholder.classList.add("page"); // Ensure it's treated as a page
-        placeholder.innerHTML = `
-          <div class="error-message">
-            <i class="fas fa-exclamation-triangle"></i>
-            <p>Fehler: Diese Seite konnte nicht geladen werden.</p>
-            <button class="btn-primary" onclick="window.app.showPage('dashboard')">
-              Zurück zum Dashboard
-            </button>
-          </div>`;
-        const mainContent = document.querySelector(".main-content");
-        if (mainContent) {
-          // Remove existing placeholder for this ID if any, before adding
-          const existingPlaceholder = mainContent.querySelector(
-            `.page#${CSS.escape(currentPageId)}`
-          );
-          if (existingPlaceholder) {
-            existingPlaceholder.remove();
-          }
-          mainContent.appendChild(placeholder);
-        }
-      }
-      // Call the original function from appCoreLogic (now on window.app)
-      // It should handle making 'currentPageId' visible and hiding others.
-      return originalShowPageGlobal.call(window.app, currentPageId);
-    };
-    console.log(
-      "DOMContentLoaded (app.js): window.app.showPage wurde erweitert (mit Placeholder-Logik)."
-    );
-  } else {
-    console.error(
-      "DOMContentLoaded (app.js): window.app.showPage ist keine Funktion oder window.app nicht definiert, kann nicht erweitert werden."
-    );
-  }
-
-  // Initialize the App ONCE, after window.app is fully configured.
+  // Initialize the App (this will now trigger the auth flow)
   if (window.app && typeof window.app.init === "function") {
     window.app.init();
   } else {
-    console.error(
-      "DOMContentLoaded (app.js): App-Kern konnte nicht initialisiert werden. window.app.init ist nicht verfügbar."
-    );
+    console.error("DOMContentLoaded (app.js): App-Kern konnte nicht initialisiert werden. window.app.init ist nicht verfügbar.");
   }
 
 }); // This is the single, correct closing brace for the DOMContentLoaded event listener.
