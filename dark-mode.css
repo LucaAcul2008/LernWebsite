@@ -40,29 +40,32 @@ body.dark-mode .skip-to-content:focus {
 
 /* Sidebar */
 body.dark-mode .sidebar {
-    background: var(--dark-bg-secondary); /* Solid dark, instead of gradient for simplicity */
+    background: var(--dark-bg-secondary);
     border-right: 1px solid var(--dark-border);
-    color: var(--dark-text-light); /* Default text color for sidebar */
+    color: var(--dark-text-light);
 }
 body.dark-mode .sidebar .logo h1 {
     color: var(--dark-text-light);
 }
 body.dark-mode .sidebar .logo .logo-icon {
-    color: var(--dark-accent-primary); /* Make logo icon stand out */
+    color: var(--dark-accent-primary);
 }
 body.dark-mode .nav-links li {
-    color: var(--dark-text-primary); /* Brighter than secondary for better readability */
+    color: var(--dark-text-primary);
 }
 body.dark-mode .nav-links li:hover {
     background-color: var(--dark-hover);
-    color: var(--dark-accent-primary);
+    color: var(--dark-text-light); /* MODIFIED: Use a very light color for text on hover */
+}
+body.dark-mode .nav-links li:hover i { /* Ensure icon also gets the bright color on hover */
+    color: var(--dark-text-light); /* MODIFIED: Use a very light color for icon on hover */
 }
 body.dark-mode .nav-links li.active {
-    color: var(--dark-accent-primary);
+    color: var(--dark-text-light); /* MODIFIED: Use a very light color for text */
     background-color: var(--dark-bg-tertiary);
 }
 body.dark-mode .nav-links li.active i {
-    color: var(--dark-accent-primary);
+    color: var(--dark-text-light); /* MODIFIED: Use a very light color for icon */
 }
 body.dark-mode .nav-links li::before {
     background-color: var(--dark-accent-primary);
@@ -537,13 +540,19 @@ body.dark-mode .message-bubble pre code {
 body.dark-mode .message-bubble a { /* Links inside chat bubbles */
     color: var(--dark-accent-primary);
 }
-body.dark-mode .message-bubble a:hover {
+bbody.dark-mode .message-bubble a:hover {
     color: var(--dark-accent-secondary);
 }
 
 body.dark-mode .chat-input-container { /* If you have a wrapper for the input and button */
-    background-color: var(--dark-bg-secondary);
+    background-color: var(--dark-bg-primary); /* MODIFIED: Using theme variable for very dark, similar to black */
     border-top: 1px solid var(--dark-border);
+}
+
+/* Ensure the .chat-input bar itself has a dark background and border */
+body.dark-mode .chat-input {
+    background-color: var(--dark-bg-secondary); /* Dark background for the input bar */
+    border-top: 1px solid var(--dark-border); /* Dark border */
 }
 
 body.dark-mode .chat-input textarea {
@@ -705,10 +714,18 @@ body.dark-mode .urgent-message {
 }
 
 
-/* Empty states & Coming Soon */
 body.dark-mode .empty-state,
 body.dark-mode .coming-soon p {
-    color: var(--dark-text-secondary);
+    color: var(--dark-text-secondary); /* Ensures the text color is suitable for dark backgrounds */
+}
+
+/* Ensure the containers for empty states also have dark backgrounds if not already covered */
+body.dark-mode .materials-container.empty,
+body.dark-mode #flashcard-sets-container.empty, /* If it gets an 'empty' class */
+body.dark-mode #exams-container.empty, /* If it gets an 'empty' class */
+body.dark-mode #quiz-container.empty /* If it gets an 'empty' class and you have one */ {
+    background-color: var(--dark-bg-secondary); /* Or var(--dark-bg-primary) depending on context */
+    /* If these containers are already styled as cards or part of the page background, this might not be needed */
 }
 body.dark-mode .coming-soon { /* The container for coming soon */
     background-color: var(--dark-bg-secondary);

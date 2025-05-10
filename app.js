@@ -984,6 +984,25 @@ document.addEventListener("DOMContentLoaded", function () {
         if (material.completed) completedMaterials++;
       });
 
+        console.log("updateUI: Aktualisiere die Benutzeroberfläche.");
+      // Update dashboard stats
+      const materialsCount = document.getElementById("materials-count");
+      if (materialsCount) {
+        materialsCount.textContent = this.materials.length;
+      }
+
+      // Update current date on dashboard
+      const currentDateEl = document.getElementById("current-date");
+      if (currentDateEl) {
+        const today = new Date();
+        currentDateEl.textContent = today.toLocaleDateString("de-DE", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+      }
+
       const progressPercent =
         this.materials.length > 0
           ? Math.round((completedMaterials / this.materials.length) * 100)
@@ -1310,8 +1329,13 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     },
 
-    updateMaterialsList: function () {
+     updateMaterialsList: function () {
       const materialsContainer = document.querySelector(".materials-container");
+
+      if (!materialsContainer) {
+        console.error("updateMaterialsList FEHLER: materialsContainer nicht gefunden.");
+        return;
+      }
 
       if (this.materials.length === 0) {
         materialsContainer.innerHTML =
@@ -1333,18 +1357,30 @@ document.addEventListener("DOMContentLoaded", function () {
           thumbnailHtml = `<img src="${material.thumbnail}" alt="PDF Thumbnail" class="pdf-thumbnail">`;
         }
 
+        let dateAddedText = "Datum unbekannt";
+        if (material.dateAdded) { // Checks if dateAdded exists
+          const dateObj = new Date(material.dateAdded);
+          if (dateObj && !isNaN(dateObj.getTime())) { // Checks if the date string was parsed successfully
+            dateAddedText = dateObj.toLocaleDateString("de-DE");
+          } else {
+            // This line is likely being executed for the problematic materials
+            console.warn(`Ungültiges Datum für Material ID ${material.id}:`, material.dateAdded);
+          }
+        } else {
+            // This would be executed if material.dateAdded is missing entirely
+            console.warn(`Fehlendes Datum für Material ID ${material.id}`);
+        }
+
         materialCard.innerHTML = `
                     <div class="material-icon">
                         ${thumbnailHtml}
                     </div>
                     <div class="material-info">
                         <h3>${material.name}</h3>
-                        <p>Hinzugefügt am ${new Date(
-                          material.dateAdded
-                        ).toLocaleDateString("de-DE")}</p>
+                        <p>Hinzugefügt am ${dateAddedText}</p>
                         <small>${
-                          material.pages ? material.pages.length : 0
-                        } Seiten</small>
+                          material.pages ? material.pages.length : 0 // Assuming you might add a pages property
+                        } Seiten</small> 
                     </div>
                     <div class="material-progress">
                         <p>${
@@ -1365,8 +1401,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Add click event to open material
         materialCard.addEventListener("click", (e) => {
-          // Don't open material if delete button was clicked
-
           if (!e.target.closest(".delete-material")) {
             this.openMaterial(material.id);
           }
@@ -1375,7 +1409,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // Add delete functionality
         const deleteBtn = materialCard.querySelector(".delete-material");
         deleteBtn.addEventListener("click", (e) => {
-          e.stopPropagation(); // Prevent opening the material
+          e.stopPropagation(); 
           this.confirmDeleteMaterial(material.id);
         });
 

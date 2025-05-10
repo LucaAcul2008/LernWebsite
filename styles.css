@@ -388,15 +388,17 @@ body {
 .material-card {
     background-color: var(--card-bg);
     border-radius: var(--border-radius);
-    padding: var(--spacing-xl);
+    padding: var(--spacing-lg); /* MODIFIED: Was var(--spacing-xl) */
     box-shadow: var(--shadow-soft);
     display: flex;
     flex-direction: column;
     cursor: pointer;
     transition: var(--transition-smooth);
     position: relative;
-    overflow: hidden;
+    /* overflow: hidden; Consider removing or changing if content is clipped */
     border: 1px solid rgba(0, 0, 0, 0.05);
+    min-height: 220px; /* ADDED: Ensure a minimum height */
+    justify-content: space-between; /* ADDED: Helps distribute space if card is taller */
 }
 
 .material-card:hover {
@@ -2269,9 +2271,10 @@ button:disabled {
     border-left: 3px solid #c62828;
   }
 
-  /* Flashcards Page Specifics */
+    /* Flashcards Page Specifics */
 #flashcard-set-editor-view, #flashcard-study-view {
     padding: 20px;
+    
     background-color: #f9f9f9;
     border-radius: 8px;
     margin-top: 20px;
@@ -2280,47 +2283,49 @@ button:disabled {
 .flashcard-edit-item {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 15px;
+    gap: 15px; /* Increased gap for more internal spacing */
+    padding: 20px; /* Increased padding */
     border: 1px solid #ddd;
     border-radius: 6px;
-    margin-bottom: 15px;
+    margin-bottom: 20px; /* Increased margin for better separation */
     background-color: #fff;
+    min-width: 300px; /* Ensure a reasonable minimum width */
 }
 
 .flashcard-edit-item textarea {
     width: 100%;
-    padding: 10px;
+    padding: 12px; /* Slightly increased padding */
     border: 1px solid #ccc;
     border-radius: 4px;
-    min-height: 60px;
+    min-height: 80px; /* Increased min-height for textareas */
     font-size: 1rem;
+    line-height: 1.4; /* Improved line height for readability */
 }
 
-/* NEUES STYLING FÜR DIE INFO-NACHRICHT */
-.editor-info-message {
-    background-color: #e7f3fe; /* Helles Blau */
-    color: #31708f; /* Dunkleres Blau für Text */
-    padding: 10px 15px;
-    border-radius: 4px;
-    margin-bottom: 15px;
-    font-size: 0.9rem;
-    border: 1px solid #bce8f1;
-}
-.editor-info-message i {
-    margin-right: 8px;
-}
 
 .remove-card-edit-btn {
-    align-self: flex-end;
+    align-self: flex-end; /* Keeps it to the right in the column flow */
+    margin-top: 10px; /* Increased margin-top for more space above the button */
+    flex-shrink: 0; /* Prevent the button from shrinking if space is very tight */
 }
 
 .flashcard-set-card .flashcard-set-actions {
     display: flex;
     gap: 10px;
-    margin-top: 10px;
-    padding-top: 10px;
+    margin-top: 10px; /* Was var(--spacing-md) which is 16px, 10px is fine */
+    padding-top: 10px; /* Was var(--spacing-md) */
     border-top: 1px solid #eee;
+    flex-wrap: wrap; /* ADDED: Allow buttons to wrap */
+    justify-content: flex-start; /* ADDED: Align wrapped buttons to the start */
+}
+
+/* Adjust padding for buttons specifically within flashcard set actions */
+.flashcard-set-card .flashcard-set-actions .btn-primary,
+.flashcard-set-card .flashcard-set-actions .btn-secondary,
+.flashcard-set-card .flashcard-set-actions .btn-danger {
+    padding: var(--spacing-sm) var(--spacing-md); /* MODIFIED: Reduced horizontal padding */
+    flex-grow: 1; /* Optional: Allow buttons to grow to fill space if only one or two per line */
+    min-width: 100px; /* Optional: Ensure buttons have a minimum width */
 }
 
 

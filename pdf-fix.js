@@ -212,11 +212,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             id: materialId,
                             name: materialName,
                             type: 'pdf',
+                            fileName: file.name, // ADDED
+                            dateAdded: new Date().toISOString(), // ADDED
                             content: extractedContentForAI,
                             summary: '',
                             notes: '',
                             completed: false,
-                            quizAttempts: []
+                            quizAttempts: [],
+                            fileAvailable: true // ADDED
                             // fileData nicht hier speichern, wird bei Bedarf geladen
                         };
                         window.app.materials.push(newMaterial);

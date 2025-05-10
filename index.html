@@ -1,612 +1,816 @@
 <!DOCTYPE html>
 <html lang="de">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description"
-        content="Study Companion - Deine persönliche Lernplattform für effektives Lernen mit Materialverwaltung, Quiz, Lernkarten und mehr.">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Study Companion - Deine persönliche Lernplattform für effektives Lernen mit Materialverwaltung, Quiz, Lernkarten und mehr."
+    />
     <title>Study Companion</title>
 
     <!-- CSS Files -->
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="dark-mode.css">
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="dark-mode.css" />
     <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    />
 
     <!-- Chart.js for analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-
 
     <!-- Add this in your <head> section, before your other scripts -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
 
-    
-
     <!-- PWA Support -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4361ee">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#4361ee" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <!-- Ensure leading slash for consistency -->
     <script src="flashcards.js" defer></script>
 
     <!-- Open Graph tags for social sharing -->
-    <meta property="og:title" content="Study Companion">
-    <meta property="og:description" content="Deine persönliche Lernplattform für effektives Lernen">
-    <meta property="og:image" content="icons/icon-512.png">
-    <meta property="og:url" content="https://studycompanion.example.com">
+    <meta property="og:title" content="Study Companion" />
+    <meta
+      property="og:description"
+      content="Deine persönliche Lernplattform für effektives Lernen"
+    />
+    <meta property="og:image" content="icons/icon-512.png" />
+    <meta property="og:url" content="https://studycompanion.example.com" />
+  </head>
 
-
-</head>
-
-<body>
+  <body>
     <!-- Skip to content link for accessibility -->
     <a href="#main-content" class="skip-to-content">Zum Inhalt springen</a>
 
     <!-- Navigation -->
     <nav class="sidebar" aria-label="Hauptnavigation">
-        <div class="logo">
-            <i class="fas fa-book-reader logo-icon" aria-hidden="true"></i>
-            <h1>Study Companion</h1>
-        </div>
-        <ul class="nav-links">
-            <li data-page="dashboard" class="active"><i class="fas fa-home" aria-hidden="true"></i>
-                <span>Dashboard</span></li>
-            <li data-page="materials"><i class="fas fa-book" aria-hidden="true"></i> <span>Materialien</span></li>
-            <li data-page="quizzes"><i class="fas fa-question-circle" aria-hidden="true"></i> <span>Quiz</span></li>
-            <li data-page="flashcards"><i class="fas fa-clone" aria-hidden="true"></i> <span>Lernkarten</span></li>
-            <li data-page="exams"><i class="fas fa-clipboard" aria-hidden="true"></i> <span>Prüfungen</span></li>
-            <li data-page="analytics"><i class="fas fa-chart-line" aria-hidden="true"></i> <span>Statistiken</span></li>
-            <li data-page="chat"><i class="fas fa-comments" aria-hidden="true"></i> <span>AI Chat</span></li>
-            <li data-page="study-groups"><i class="fas fa-users" aria-hidden="true"></i> <span>Lerngruppen</span></li>
-        </ul>
-        <div class="sidebar-footer">
-            <button id="theme-toggle" class="theme-toggle" aria-label="Dark mode toggle"
-                disabled.onclick="dark-mode.css">
-                <i class="fas fa-moon" aria-hidden="true"></i>
-            </button>
-        </div>
+      <div class="logo">
+        <i class="fas fa-book-reader logo-icon" aria-hidden="true"></i>
+        <h1>Study Companion</h1>
+      </div>
+      <ul class="nav-links">
+        <li data-page="dashboard" class="active">
+          <i class="fas fa-home" aria-hidden="true"></i> <span>Dashboard</span>
+        </li>
+        <li data-page="materials">
+          <i class="fas fa-book" aria-hidden="true"></i>
+          <span>Materialien</span>
+        </li>
+        <li data-page="quizzes">
+          <i class="fas fa-question-circle" aria-hidden="true"></i>
+          <span>Quiz</span>
+        </li>
+        <li data-page="flashcards">
+          <i class="fas fa-clone" aria-hidden="true"></i>
+          <span>Lernkarten</span>
+        </li>
+        <li data-page="exams">
+          <i class="fas fa-clipboard" aria-hidden="true"></i>
+          <span>Prüfungen</span>
+        </li>
+        <li data-page="analytics">
+          <i class="fas fa-chart-line" aria-hidden="true"></i>
+          <span>Statistiken</span>
+        </li>
+        <li data-page="chat">
+          <i class="fas fa-comments" aria-hidden="true"></i>
+          <span>AI Chat</span>
+        </li>
+        <li data-page="study-groups">
+          <i class="fas fa-users" aria-hidden="true"></i>
+          <span>Lerngruppen</span>
+        </li>
+      </ul>
+      <div class="sidebar-footer">
+        <button
+          id="theme-toggle"
+          class="theme-toggle"
+          aria-label="Dark mode toggle"
+          disabled.onclick="dark-mode.css"
+        >
+          <i class="fas fa-moon" aria-hidden="true"></i>
+        </button>
+      </div>
     </nav>
 
     <!-- Main Content Area -->
     <main class="main-content" id="main-content">
-        <!-- Dashboard Page -->
-        <div id="dashboard" class="page active" role="tabpanel" aria-labelledby="dashboard-tab">
-            <div class="dashboard-header">
-                <h2>Dashboard</h2>
-                <div class="date-time">
-                    <span id="current-date">Datum lädt...</span>
-                </div>
-            </div>
-
-            <div class="stats-container">
-                <div class="stat-card">
-                    <h3><i class="fas fa-book" aria-hidden="true"></i> Materialien</h3>
-                    <div class="stat-value" id="materials-count">0</div>
-                </div>
-                <div class="stat-card">
-                    <h3><i class="fas fa-check" aria-hidden="true"></i> Fortschritt</h3>
-                    <div class="stat-value"><span id="progress-percent">0</span>%</div>
-                </div>
-                <div class="stat-card">
-                    <h3><i class="fas fa-calendar-day" aria-hidden="true"></i> Nächste Prüfung</h3>
-                    <div class="stat-value" id="next-exam-date">Keine anstehend</div>
-                </div>
-                <div class="stat-card">
-                    <h3><i class="fas fa-stopwatch" aria-hidden="true"></i> Lernzeit</h3>
-                    <div class="stat-value" id="total-study-time">0 Std</div>
-                </div>
-            </div>
-
-            <div class="dashboard-row">
-                <div class="dashboard-col">
-                    <div class="section-title">
-                        <i class="fas fa-tasks" aria-hidden="true"></i> Lernplan
-                    </div>
-                    <div class="agenda-card">
-                        <div id="agenda-container">
-                            <p class="empty-state">Keine anstehenden Prüfungen. Füge eine Prüfung hinzu, um einen
-                                Lernplan zu erstellen.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="dashboard-col">
-                    <div class="section-title">
-                        <i class="fas fa-stopwatch" aria-hidden="true"></i> Pomodoro-Timer
-                    </div>
-                    <div class="timer-card">
-                        <div class="timer-display" aria-live="polite">25:00</div>
-                        <div class="timer-controls">
-                            <!-- Remove any disabled attributes from buttons -->
-                            <button id="start-timer" class="btn-primary">
-                                <i class="fas fa-play"></i> Start
-                            </button>
-                            <button id="pause-timer" class="btn-secondary">
-                                <i class="fas fa-pause"></i> Pause
-                            </button>
-                            <button id="reset-timer" class="btn-secondary">
-                                <i class="fas fa-redo"></i> Reset
-                            </button>
-                        </div>
-                        <div class="timer-settings">
-                            <label class="checkbox-container">
-                                <input type="checkbox" id="pomodoro-mode">
-                                <span class="checkmark"></span>
-                                Pomodoro-Modus
-                            </label>
-                            <div class="timer-task-select">
-                                <label for="pomodoro-task">Aufgabe:</label>
-                                <select id="pomodoro-task">
-                                    <option value="">-- Wähle Material --</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <!-- Dashboard Page -->
+      <div
+        id="dashboard"
+        class="page active"
+        role="tabpanel"
+        aria-labelledby="dashboard-tab"
+      >
+        <div class="dashboard-header">
+          <h2>Dashboard</h2>
+          <div class="date-time">
+            <span id="current-date">Datum lädt...</span>
+          </div>
         </div>
 
-        <!-- Materials Page -->
-        <div id="materials" class="page" role="tabpanel" aria-labelledby="materials-tab">
-            <div class="page-header">
-                <h2>Lernmaterialien</h2>
-                <p>Lade PDFs hoch und verwalte deine Lernunterlagen</p>
-            </div>
+        <div class="stats-container">
+          <div class="stat-card">
+            <h3><i class="fas fa-book" aria-hidden="true"></i> Materialien</h3>
+            <div class="stat-value" id="materials-count">0</div>
+          </div>
+          <div class="stat-card">
+            <h3><i class="fas fa-check" aria-hidden="true"></i> Fortschritt</h3>
+            <div class="stat-value"><span id="progress-percent">0</span>%</div>
+          </div>
+          <div class="stat-card">
+            <h3>
+              <i class="fas fa-calendar-day" aria-hidden="true"></i> Nächste
+              Prüfung
+            </h3>
+            <div class="stat-value" id="next-exam-date">Keine anstehend</div>
+          </div>
+          <div class="stat-card">
+            <h3>
+              <i class="fas fa-stopwatch" aria-hidden="true"></i> Lernzeit
+            </h3>
+            <div class="stat-value" id="total-study-time">0 Std</div>
+          </div>
+        </div>
 
-            <div id="upload-area" class="upload-area" tabindex="0" role="button" aria-label="PDF hochladen">
-                <input type="file" id="pdf-upload" accept="application/pdf" hidden>
-                <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
-                <p>Ziehe deine PDF-Datei hierher oder klicke zum Auswählen</p>
-                <button class="upload-btn">PDF auswählen</button>
-            </div>
-
+        <div class="dashboard-row">
+          <div class="dashboard-col">
             <div class="section-title">
-                <i class="fas fa-book-open" aria-hidden="true"></i> Meine Materialien
+              <i class="fas fa-tasks" aria-hidden="true"></i> Lernplan
+            </div>
+            <div class="agenda-card">
+              <div id="agenda-container">
+                <p class="empty-state">
+                  Keine anstehenden Prüfungen. Füge eine Prüfung hinzu, um einen
+                  Lernplan zu erstellen.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="dashboard-col">
+            <div class="section-title">
+              <i class="fas fa-stopwatch" aria-hidden="true"></i> Pomodoro-Timer
+            </div>
+            <div class="timer-card">
+              <div class="timer-display" aria-live="polite">25:00</div>
+              <div class="timer-controls">
+                <!-- Remove any disabled attributes from buttons -->
+                <button id="start-timer" class="btn-primary">
+                  <i class="fas fa-play"></i> Start
+                </button>
+                <button id="pause-timer" class="btn-secondary">
+                  <i class="fas fa-pause"></i> Pause
+                </button>
+                <button id="reset-timer" class="btn-secondary">
+                  <i class="fas fa-redo"></i> Reset
+                </button>
+              </div>
+              <div class="timer-settings">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="pomodoro-mode" />
+                  <span class="checkmark"></span>
+                  Pomodoro-Modus
+                </label>
+                <div class="timer-task-select">
+                  <label for="pomodoro-task">Aufgabe:</label>
+                  <select id="pomodoro-task">
+                    <option value="">-- Wähle Material --</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Materials Page -->
+      <div
+        id="materials"
+        class="page"
+        role="tabpanel"
+        aria-labelledby="materials-tab"
+      >
+        <div class="page-header">
+          <h2>Lernmaterialien</h2>
+          <p>Lade PDFs hoch und verwalte deine Lernunterlagen</p>
+        </div>
+
+        <div
+          id="upload-area"
+          class="upload-area"
+          tabindex="0"
+          role="button"
+          aria-label="PDF hochladen"
+        >
+          <input type="file" id="pdf-upload" accept="application/pdf" hidden />
+          <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+          <p>Ziehe deine PDF-Datei hierher oder klicke zum Auswählen</p>
+          <button class="upload-btn">PDF auswählen</button>
+        </div>
+
+        <div class="section-title">
+          <i class="fas fa-book-open" aria-hidden="true"></i> Meine Materialien
+        </div>
+
+        <div class="materials-container empty" aria-live="polite">
+          <p class="empty-state">Noch keine Lernmaterialien hochgeladen.</p>
+        </div>
+      </div>
+
+      <!-- Material Viewer Page -->
+      <!-- Material Viewer Page -->
+      <div id="material-viewer" class="page" role="tabpanel">
+        <div class="material-header">
+          <h2 id="material-title">Material Titel</h2>
+          <div class="material-actions">
+            <button id="generate-quiz-btn" class="btn-secondary">
+              <i class="fas fa-question-circle"></i> Quiz erstellen
+            </button>
+            <button id="generate-flashcards-ai-btn" class="btn-secondary">
+              <!-- NEUER BUTTON -->
+              <i class="fas fa-magic"></i> AI Lernkarten erstellen
+            </button>
+            <button id="mark-completed-btn" class="btn-accent">
+              <i class="fas fa-check"></i> Als abgeschlossen markieren
+            </button>
+            <button id="back-to-materials-btn" class="btn-text">
+              <i class="fas fa-arrow-left"></i> Zurück zu Materialien
+            </button>
+          </div>
+        </div>
+
+        <div class="material-content-tabs">
+          <div class="tabs">
+            <button class="tab active" data-tab="pdf">
+              <i class="fas fa-file-pdf"></i> PDF
+            </button>
+            <button class="tab" data-tab="summary">
+              <i class="fas fa-file-alt"></i> Zusammenfassung
+            </button>
+            <button class="tab" data-tab="notes">
+              <i class="fas fa-edit"></i> Notizen
+            </button>
+          </div>
+
+          <div class="tab-content-container">
+            <div id="pdf-content" class="tab-content tab-pane active">
+              <!-- Klasse tab-pane hinzugefügt -->
+              <div id="pdf-renderer">
+                <!-- PDF wird hier gerendert -->
+              </div>
+              <div id="pdf-navigation" class="pdf-navigation">
+                <!-- PDF Navigation (vor/zurück) wird hier eingefügt -->
+              </div>
             </div>
 
-            <div class="materials-container empty" aria-live="polite">
-                <p class="empty-state">Noch keine Lernmaterialien hochgeladen.</p>
+            <div id="summary-content" class="tab-content tab-pane">
+              <!-- Klasse tab-pane hinzugefügt -->
+              <!-- Status-Element für generateSummary -->
+              <div id="summary-status" class="summary-status"></div>
+              <!-- Text-Element, wo die Zusammenfassung oder der "Erstellen"-Button angezeigt wird -->
+              <div id="summary-text-container">
+                <!-- Wrapper für den Inhalt -->
+                <!-- Inhalt wird von app.js hier eingefügt (entweder Text oder "Erstellen"-Button) -->
+              </div>
             </div>
+
+            <div id="notes-content" class="tab-content tab-pane">
+              <!-- Klasse tab-pane hinzugefügt -->
+              <textarea
+                id="notes-editor"
+                placeholder="Deine Notizen hier..."
+              ></textarea>
+              <button id="save-notes-btn" class="btn-primary">
+                <i class="fas fa-save"></i> Notizen speichern
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quizzes Page -->
+      <div
+        id="quizzes"
+        class="page"
+        role="tabpanel"
+        aria-labelledby="quizzes-tab"
+      >
+        <div id="quiz-list">
+          <div class="page-header">
+            <h2>Quiz</h2>
+            <p>Teste dein Wissen mit automatisch generierten Quiz</p>
+          </div>
+
+          <p class="quiz-info">
+            <i class="fas fa-lightbulb" aria-hidden="true"></i> Tipp: Öffne ein
+            Lernmaterial und klicke auf "Quiz erstellen", um ein neues Quiz zu
+            erstellen.
+          </p>
+
+          <div class="section-title">
+            <i class="fas fa-question-circle" aria-hidden="true"></i> Meine Quiz
+          </div>
+
+          <div class="quiz-container empty" aria-live="polite">
+            <p class="empty-state">
+              Keine Quiz verfügbar. Erstelle ein Quiz aus deinen
+              Lernmaterialien.
+            </p>
+          </div>
         </div>
 
-  <!-- Material Viewer Page -->
- <!-- Material Viewer Page -->
- <div id="material-viewer" class="page" role="tabpanel">
-    <div class="material-header">
-      <h2 id="material-title">Material Titel</h2>
-      <div class="material-actions">
-        <button id="generate-quiz-btn" class="btn-secondary">
-          <i class="fas fa-question-circle"></i> Quiz erstellen
-        </button>
-        <button id="generate-flashcards-ai-btn" class="btn-secondary"> <!-- NEUER BUTTON -->
-            <i class="fas fa-magic"></i> AI Lernkarten erstellen
-        </button>
-        <button id="mark-completed-btn" class="btn-accent">
-          <i class="fas fa-check"></i> Als abgeschlossen markieren
-        </button>
-        <button id="back-to-materials-btn" class="btn-text">
-          <i class="fas fa-arrow-left"></i> Zurück zu Materialien
-        </button>
-      </div>
-    </div>
-    
-    <div class="material-content-tabs">
-      <div class="tabs">
-        <button class="tab active" data-tab="pdf"><i class="fas fa-file-pdf"></i> PDF</button>
-        <button class="tab" data-tab="summary"><i class="fas fa-file-alt"></i> Zusammenfassung</button>
-        <button class="tab" data-tab="notes"><i class="fas fa-edit"></i> Notizen</button>
-      </div>
-      
-      <div class="tab-content-container">
-        <div id="pdf-content" class="tab-content tab-pane active"> <!-- Klasse tab-pane hinzugefügt -->
-          <div id="pdf-renderer">
-            <!-- PDF wird hier gerendert -->
+        <div id="active-quiz" class="hidden" aria-live="polite">
+          <div class="page-header with-back">
+            <button id="exit-quiz" class="back-btn" aria-label="Quiz beenden">
+              <i class="fas fa-arrow-left" aria-hidden="true"></i>
+            </button>
+            <div>
+              <h2 id="quiz-title">Quiz</h2>
+              <div class="quiz-progress" aria-label="Quiz Fortschritt">
+                <div class="progress-bar">
+                  <div
+                    class="progress"
+                    style="width: 0%"
+                    aria-hidden="true"
+                  ></div>
+                </div>
+                <p id="question-counter">Frage 1/10</p>
+              </div>
+            </div>
           </div>
-          <div id="pdf-navigation" class="pdf-navigation">
-            <!-- PDF Navigation (vor/zurück) wird hier eingefügt -->
+
+          <div class="question-container">
+            <div class="question">
+              <div id="question-text" aria-live="polite">
+                Fragetext wird geladen...
+              </div>
+              <div id="options-container" class="options" role="radiogroup">
+                <!-- Options will be added dynamically -->
+              </div>
+            </div>
           </div>
-        </div>
-        
-        <div id="summary-content" class="tab-content tab-pane"> <!-- Klasse tab-pane hinzugefügt -->
-          <!-- Status-Element für generateSummary -->
-          <div id="summary-status" class="summary-status"></div>
-          <!-- Text-Element, wo die Zusammenfassung oder der "Erstellen"-Button angezeigt wird -->
-          <div id="summary-text-container"> <!-- Wrapper für den Inhalt -->
-            <!-- Inhalt wird von app.js hier eingefügt (entweder Text oder "Erstellen"-Button) -->
+
+          <div class="quiz-actions">
+            <button id="next-question" class="btn-primary">Weiter</button>
+            <button id="finish-quiz" class="btn-primary hidden">
+              Abschließen
+            </button>
           </div>
         </div>
-        
-        <div id="notes-content" class="tab-content tab-pane"> <!-- Klasse tab-pane hinzugefügt -->
-          <textarea id="notes-editor" placeholder="Deine Notizen hier..."></textarea>
-          <button id="save-notes-btn" class="btn-primary">
-            <i class="fas fa-save"></i> Notizen speichern
+
+        <div id="quiz-results" class="hidden" aria-live="polite">
+          <div class="page-header">
+            <h2>Quiz Ergebnisse</h2>
+          </div>
+
+          <div class="results-summary">
+            <div class="result-card">
+              <i class="fas fa-check-circle" aria-hidden="true"></i>
+              <h3>Richtige Antworten</h3>
+              <div class="result-value" id="correct-count">0/0</div>
+            </div>
+            <div class="result-card">
+              <i class="fas fa-times-circle" aria-hidden="true"></i>
+              <h3>Falsche Antworten</h3>
+              <div class="result-value" id="incorrect-count">0/0</div>
+            </div>
+            <div class="result-card">
+              <i class="fas fa-star" aria-hidden="true"></i>
+              <h3>Punktzahl</h3>
+              <div class="result-value" id="score-percent">0%</div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+            Falsche Antworten wiederholen
+          </div>
+
+          <div id="review-questions" class="review-questions">
+            <!-- Wrong questions will be listed here -->
+          </div>
+
+          <div class="quiz-actions">
+            <button id="retry-incorrect" class="btn-primary">
+              Falsche Antworten wiederholen
+            </button>
+            <button id="back-to-quizzes" class="btn-secondary">
+              Zurück zur Übersicht
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flashcard Modals -->
+      <!-- Create Flashcard Set Modal -->
+      <div
+        id="create-set-modal"
+        class="modal"
+        role="dialog"
+        aria-labelledby="create-set-title"
+        aria-hidden="true"
+      >
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 id="create-set-title">Neues Kartenset erstellen</h2>
+            <button class="modal-close" aria-label="Schließen">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="create-set-form">
+              <div class="form-group">
+                <label for="set-name">Name des Kartensets</label>
+                <input
+                  type="text"
+                  id="set-name"
+                  required
+                  placeholder="z.B. Vokabeln Englisch"
+                />
+              </div>
+              <button type="submit" class="btn-primary">Set erstellen</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Generate Cards Modal -->
+      <div
+        id="generate-cards-modal"
+        class="modal"
+        role="dialog"
+        aria-labelledby="generate-cards-title"
+        aria-hidden="true"
+      >
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 id="generate-cards-title">Karteikarten generieren</h2>
+            <button class="modal-close" aria-label="Schließen">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="generate-cards-form">
+              <div class="form-group">
+                <label for="material-for-cards">Lernmaterial auswählen</label>
+                <select id="material-for-cards" required>
+                  <option value="" disabled selected>
+                    Material auswählen...
+                  </option>
+                  <!-- Options will be dynamically added -->
+                </select>
+              </div>
+              <button type="submit" class="btn-primary">
+                Karten generieren
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Flashcard Set Modal -->
+      <div
+        id="edit-set-modal"
+        class="modal"
+        role="dialog"
+        aria-labelledby="edit-set-title"
+        aria-hidden="true"
+      >
+        <div class="modal-overlay"></div>
+        <div class="modal-content large-modal">
+          <div class="modal-header">
+            <h2 id="edit-set-title">Kartenset bearbeiten</h2>
+            <button class="modal-close" aria-label="Schließen">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="edit-set-name">Name des Kartensets</label>
+              <input type="text" id="edit-set-name" required />
+            </div>
+            <div id="edit-cards-container" class="edit-cards-container">
+              <!-- Cards will be dynamically added -->
+            </div>
+            <button id="save-edited-set" class="btn-primary">
+              Änderungen speichern
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flashcards Page -->
+      <div
+        id="flashcards"
+        class="page"
+        role="tabpanel"
+        aria-labelledby="flashcards-tab"
+      >
+        <div class="page-header">
+          <h2>Lernkarten</h2>
+          <button id="create-flashcard-set-btn" class="btn-primary">
+            <i class="fas fa-plus"></i> Neues Set erstellen
+          </button>
+        </div>
+
+        <div id="flashcard-sets-view">
+          <h3>Meine Lernkarten-Sets</h3>
+          <div id="flashcard-sets-container" class="materials-container">
+            <!-- Lernkarten-Sets werden hier von JS eingefügt -->
+            <p class="empty-state">Noch keine Lernkarten-Sets erstellt.</p>
+          </div>
+        </div>
+
+        <div id="flashcard-set-editor-view" class="hidden">
+          <h3 id="flashcard-set-editor-title">
+            Lernkarten-Set erstellen/bearbeiten
+          </h3>
+          <div>
+            <label for="flashcard-set-name">Name des Sets:</label>
+            <input
+              type="text"
+              id="flashcard-set-name"
+              placeholder="z.B. Grundlagen der Synchronisation"
+            />
+          </div>
+          <div id="flashcards-editor-container">
+            <!-- Einzelne Lernkarten-Editierfelder werden hier hinzugefügt -->
+          </div>
+          <button id="add-flashcard-to-set-btn" class="btn-secondary">
+            <i class="fas fa-plus"></i> Karte hinzufügen
+          </button>
+          <button id="save-flashcard-set-btn" class="btn-primary">
+            <i class="fas fa-save"></i> Set speichern
+          </button>
+          <button id="cancel-flashcard-set-edit-btn" class="btn-text">
+            Abbrechen
+          </button>
+        </div>
+
+        <div id="flashcard-study-view" class="hidden">
+          <h3 id="flashcard-study-set-name">Lernsession</h3>
+          <div class="flashcard-container">
+            <div class="flashcard">
+              <div class="flashcard-front">
+                <p id="flashcard-question">Vorderseite der Karte</p>
+              </div>
+              <div class="flashcard-back">
+                <p id="flashcard-answer">Rückseite der Karte</p>
+              </div>
+            </div>
+          </div>
+          <div class="flashcard-navigation">
+            <button id="flashcard-prev-btn" class="btn-secondary">
+              <i class="fas fa-arrow-left"></i> Vorherige
+            </button>
+            <button id="flashcard-flip-btn" class="btn-primary">
+              Umdrehen
+            </button>
+            <button id="flashcard-next-btn" class="btn-secondary">
+              Nächste <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+          <button id="finish-flashcard-session-btn" class="btn-accent">
+            Session beenden
           </button>
         </div>
       </div>
-    </div>
-  </div>
 
-        <!-- Quizzes Page -->
-        <div id="quizzes" class="page" role="tabpanel" aria-labelledby="quizzes-tab">
-            <div id="quiz-list">
-                <div class="page-header">
-                    <h2>Quiz</h2>
-                    <p>Teste dein Wissen mit automatisch generierten Quiz</p>
-                </div>
+      <!-- Remaining code sections continue with similar improvements... -->
 
-                <p class="quiz-info">
-                    <i class="fas fa-lightbulb" aria-hidden="true"></i> Tipp: Öffne ein Lernmaterial und klicke auf
-                    "Quiz erstellen", um ein neues Quiz zu erstellen.
+      <!-- Exams Page -->
+      <div id="exams" class="page" role="tabpanel" aria-labelledby="exams-tab">
+        <div class="page-header">
+          <h2>Prüfungen</h2>
+          <p>Plane und bereite dich auf kommende Prüfungen vor</p>
+        </div>
+
+        <div class="exam-form-container">
+          <form id="exam-form" aria-labelledby="form-heading">
+            <h3 id="form-heading">Neue Prüfung hinzufügen</h3>
+            <div class="form-group">
+              <label for="exam-name">Prüfungsname</label>
+              <input
+                type="text"
+                id="exam-name"
+                required
+                placeholder="z.B. Mathe Klausur"
+              />
+            </div>
+            <div class="form-group">
+              <label for="exam-subject">Fach</label>
+              <input
+                type="text"
+                id="exam-subject"
+                required
+                placeholder="z.B. Mathematik"
+              />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="exam-date">Datum</label>
+                <input type="date" id="exam-date" required />
+              </div>
+              <div class="form-group">
+                <label for="exam-time">Uhrzeit (optional)</label>
+                <input type="time" id="exam-time" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="exam-materials">Lernmaterialien</label>
+              <select
+                id="exam-materials"
+                multiple
+                aria-describedby="multi-select-help"
+              >
+                <option disabled selected>Keine Materialien verfügbar</option>
+              </select>
+              <small id="multi-select-help"
+                >Strg/Cmd halten für Mehrfachauswahl</small
+              >
+            </div>
+            <button type="submit" class="btn-primary">
+              Prüfung hinzufügen
+            </button>
+          </form>
+        </div>
+
+        <div class="section-title">
+          <i class="fas fa-clipboard" aria-hidden="true"></i> Anstehende
+          Prüfungen
+        </div>
+
+        <div id="exams-container" class="exams-container" aria-live="polite">
+          <p class="empty-state">Noch keine Prüfungen geplant.</p>
+        </div>
+      </div>
+
+      <!-- Analytics Page -->
+      <div
+        id="analytics"
+        class="page"
+        role="tabpanel"
+        aria-labelledby="analytics-tab"
+      >
+        <div class="page-header">
+          <h2>Statistiken</h2>
+          <p>Überwache deinen Lernfortschritt</p>
+        </div>
+
+        <div class="analytics-grid">
+          <div class="analytics-card">
+            <div class="analytics-header">
+              <h3>Lernzeit pro Tag</h3>
+            </div>
+            <div
+              class="chart-container"
+              aria-label="Diagramm: Lernzeit pro Tag"
+            >
+              <canvas id="study-time-chart"></canvas>
+            </div>
+          </div>
+          <div class="analytics-card">
+            <div class="analytics-header">
+              <h3>Quiz Leistung</h3>
+            </div>
+            <div class="chart-container" aria-label="Diagramm: Quiz Leistung">
+              <canvas id="quiz-performance-chart"></canvas>
+            </div>
+          </div>
+          <div class="analytics-card">
+            <div class="analytics-header">
+              <h3>Material-Fortschritt</h3>
+            </div>
+            <div
+              class="chart-container"
+              aria-label="Diagramm: Material-Fortschritt"
+            >
+              <canvas id="material-progress-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Page -->
+      <div id="chat" class="page" role="tabpanel" aria-labelledby="chat-tab">
+        <div class="page-header">
+          <h2>AI Chat</h2>
+          <p>
+            Stelle Fragen zu deinen Lernmaterialien und bekomme sofortige Hilfe
+          </p>
+        </div>
+
+        <div class="chat-container">
+          <div id="chat-messages" class="chat-messages" aria-live="polite">
+            <div class="message ai-message">
+              <div class="message-bubble">
+                <p>
+                  Hallo! Ich bin dein persönlicher Lernassistent. Wie kann ich
+                  dir heute helfen?
                 </p>
-
-                <div class="section-title">
-                    <i class="fas fa-question-circle" aria-hidden="true"></i> Meine Quiz
-                </div>
-
-                <div class="quiz-container empty" aria-live="polite">
-                    <p class="empty-state">Keine Quiz verfügbar. Erstelle ein Quiz aus deinen Lernmaterialien.</p>
-                </div>
+              </div>
             </div>
-
-            <div id="active-quiz" class="hidden" aria-live="polite">
-                <div class="page-header with-back">
-                    <button id="exit-quiz" class="back-btn" aria-label="Quiz beenden">
-                        <i class="fas fa-arrow-left" aria-hidden="true"></i>
-                    </button>
-                    <div>
-                        <h2 id="quiz-title">Quiz</h2>
-                        <div class="quiz-progress" aria-label="Quiz Fortschritt">
-                            <div class="progress-bar">
-                                <div class="progress" style="width: 0%" aria-hidden="true"></div>
-                            </div>
-                            <p id="question-counter">Frage 1/10</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="question-container">
-                    <div class="question">
-                        <div id="question-text" aria-live="polite">Fragetext wird geladen...</div>
-                        <div id="options-container" class="options" role="radiogroup">
-                            <!-- Options will be added dynamically -->
-                        </div>
-                    </div>
-                </div>
-
-                <div class="quiz-actions">
-                    <button id="next-question" class="btn-primary">Weiter</button>
-                    <button id="finish-quiz" class="btn-primary hidden">Abschließen</button>
-                </div>
-            </div>
-
-            <div id="quiz-results" class="hidden" aria-live="polite">
-                <div class="page-header">
-                    <h2>Quiz Ergebnisse</h2>
-                </div>
-
-                <div class="results-summary">
-                    <div class="result-card">
-                        <i class="fas fa-check-circle" aria-hidden="true"></i>
-                        <h3>Richtige Antworten</h3>
-                        <div class="result-value" id="correct-count">0/0</div>
-                    </div>
-                    <div class="result-card">
-                        <i class="fas fa-times-circle" aria-hidden="true"></i>
-                        <h3>Falsche Antworten</h3>
-                        <div class="result-value" id="incorrect-count">0/0</div>
-                    </div>
-                    <div class="result-card">
-                        <i class="fas fa-star" aria-hidden="true"></i>
-                        <h3>Punktzahl</h3>
-                        <div class="result-value" id="score-percent">0%</div>
-                    </div>
-                </div>
-
-                <div class="section-title">
-                    <i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Falsche Antworten wiederholen
-                </div>
-
-                <div id="review-questions" class="review-questions">
-                    <!-- Wrong questions will be listed here -->
-                </div>
-
-                <div class="quiz-actions">
-                    <button id="retry-incorrect" class="btn-primary">Falsche Antworten wiederholen</button>
-                    <button id="back-to-quizzes" class="btn-secondary">Zurück zur Übersicht</button>
-                </div>
-            </div>
+          </div>
+          <div class="chat-input">
+            <label for="user-message" class="visually-hidden"
+              >Deine Nachricht</label
+            >
+            <textarea
+              id="user-message"
+              placeholder="Stelle eine Frage..."
+              rows="2"
+            ></textarea>
+            <button id="send-message" aria-label="Nachricht senden">
+              <i class="fas fa-paper-plane" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="chat-tips">
+            <p><i class="fas fa-lightbulb" aria-hidden="true"></i> Tipps:</p>
+            <ul>
+              <li>Stelle konkrete Fragen zu deinen Lernmaterialien</li>
+              <li>Frage nach Erklärungen zu schwierigen Konzepten</li>
+              <li>Bitte um Zusammenfassungen oder Lernpläne</li>
+            </ul>
+          </div>
         </div>
+      </div>
 
-        <!-- Flashcard Modals -->
-        <!-- Create Flashcard Set Modal -->
-        <div id="create-set-modal" class="modal" role="dialog" aria-labelledby="create-set-title" aria-hidden="true">
-            <div class="modal-overlay"></div>
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 id="create-set-title">Neues Kartenset erstellen</h2>
-                    <button class="modal-close" aria-label="Schließen">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <form id="create-set-form">
-                        <div class="form-group">
-                            <label for="set-name">Name des Kartensets</label>
-                            <input type="text" id="set-name" required placeholder="z.B. Vokabeln Englisch">
-                        </div>
-                        <button type="submit" class="btn-primary">Set erstellen</button>
-                    </form>
-                </div>
-            </div>
+      <!-- Study Groups Page -->
+      <div
+        id="study-groups"
+        class="page"
+        role="tabpanel"
+        aria-labelledby="study-groups-tab"
+      >
+        <div class="page-header">
+          <h2>Lerngruppen</h2>
+          <p>In der nächsten Version verfügbar</p>
         </div>
-
-        <!-- Generate Cards Modal -->
-        <div id="generate-cards-modal" class="modal" role="dialog" aria-labelledby="generate-cards-title"
-            aria-hidden="true">
-            <div class="modal-overlay"></div>
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 id="generate-cards-title">Karteikarten generieren</h2>
-                    <button class="modal-close" aria-label="Schließen">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <form id="generate-cards-form">
-                        <div class="form-group">
-                            <label for="material-for-cards">Lernmaterial auswählen</label>
-                            <select id="material-for-cards" required>
-                                <option value="" disabled selected>Material auswählen...</option>
-                                <!-- Options will be dynamically added -->
-                            </select>
-                        </div>
-                        <button type="submit" class="btn-primary">Karten generieren</button>
-                    </form>
-                </div>
-            </div>
+        <div class="coming-soon">
+          <i class="fas fa-users" aria-hidden="true"></i>
+          <h3>Bald verfügbar!</h3>
+          <p>
+            Lerngruppen werden in der nächsten Version implementiert. Bleib
+            dran!
+          </p>
         </div>
-
-        <!-- Edit Flashcard Set Modal -->
-        <div id="edit-set-modal" class="modal" role="dialog" aria-labelledby="edit-set-title" aria-hidden="true">
-            <div class="modal-overlay"></div>
-            <div class="modal-content large-modal">
-                <div class="modal-header">
-                    <h2 id="edit-set-title">Kartenset bearbeiten</h2>
-                    <button class="modal-close" aria-label="Schließen">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="edit-set-name">Name des Kartensets</label>
-                        <input type="text" id="edit-set-name" required>
-                    </div>
-                    <div id="edit-cards-container" class="edit-cards-container">
-                        <!-- Cards will be dynamically added -->
-                    </div>
-                    <button id="save-edited-set" class="btn-primary">Änderungen speichern</button>
-                </div>
-            </div>
-        </div>
-
-         <!-- Flashcards Page -->
-         <div id="flashcards" class="page" role="tabpanel" aria-labelledby="flashcards-tab">
-            <div class="page-header">
-                <h2>Lernkarten</h2>
-                <button id="create-flashcard-set-btn" class="btn-primary"><i class="fas fa-plus"></i> Neues Set erstellen</button>
-            </div>
-
-            <div id="flashcard-sets-view">
-                <h3>Meine Lernkarten-Sets</h3>
-                <div id="flashcard-sets-container" class="materials-container">
-                    <!-- Lernkarten-Sets werden hier von JS eingefügt -->
-                    <p class="empty-state">Noch keine Lernkarten-Sets erstellt.</p>
-                </div>
-            </div>
-
-            <div id="flashcard-set-editor-view" class="hidden">
-                <h3 id="flashcard-set-editor-title">Lernkarten-Set erstellen/bearbeiten</h3>
-                <div>
-                    <label for="flashcard-set-name">Name des Sets:</label>
-                    <input type="text" id="flashcard-set-name" placeholder="z.B. Grundlagen der Synchronisation">
-                </div>
-                <div id="flashcards-editor-container">
-                    <!-- Einzelne Lernkarten-Editierfelder werden hier hinzugefügt -->
-                </div>
-                <button id="add-flashcard-to-set-btn" class="btn-secondary"><i class="fas fa-plus"></i> Karte hinzufügen</button>
-                <button id="save-flashcard-set-btn" class="btn-primary"><i class="fas fa-save"></i> Set speichern</button>
-                <button id="cancel-flashcard-set-edit-btn" class="btn-text">Abbrechen</button>
-            </div>
-
-            <div id="flashcard-study-view" class="hidden">
-                <h3 id="flashcard-study-set-name">Lernsession</h3>
-                <div class="flashcard-container">
-                    <div class="flashcard">
-                        <div class="flashcard-front">
-                            <p id="flashcard-question">Vorderseite der Karte</p>
-                        </div>
-                        <div class="flashcard-back">
-                            <p id="flashcard-answer">Rückseite der Karte</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="flashcard-navigation">
-                    <button id="flashcard-prev-btn" class="btn-secondary"><i class="fas fa-arrow-left"></i> Vorherige</button>
-                    <button id="flashcard-flip-btn" class="btn-primary">Umdrehen</button>
-                    <button id="flashcard-next-btn" class="btn-secondary">Nächste <i class="fas fa-arrow-right"></i></button>
-                </div>
-                <button id="finish-flashcard-session-btn" class="btn-accent">Session beenden</button>
-            </div>
-        </div>
-
-        <!-- Remaining code sections continue with similar improvements... -->
-
-        <!-- Exams Page -->
-        <div id="exams" class="page" role="tabpanel" aria-labelledby="exams-tab">
-            <div class="page-header">
-                <h2>Prüfungen</h2>
-                <p>Plane und bereite dich auf kommende Prüfungen vor</p>
-            </div>
-
-            <div class="exam-form-container">
-                <form id="exam-form" aria-labelledby="form-heading">
-                    <h3 id="form-heading">Neue Prüfung hinzufügen</h3>
-                    <div class="form-group">
-                        <label for="exam-name">Prüfungsname</label>
-                        <input type="text" id="exam-name" required placeholder="z.B. Mathe Klausur">
-                    </div>
-                    <div class="form-group">
-                        <label for="exam-subject">Fach</label>
-                        <input type="text" id="exam-subject" required placeholder="z.B. Mathematik">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="exam-date">Datum</label>
-                            <input type="date" id="exam-date" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="exam-time">Uhrzeit (optional)</label>
-                            <input type="time" id="exam-time">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="exam-materials">Lernmaterialien</label>
-                        <select id="exam-materials" multiple aria-describedby="multi-select-help">
-                            <option disabled selected>Keine Materialien verfügbar</option>
-                        </select>
-                        <small id="multi-select-help">Strg/Cmd halten für Mehrfachauswahl</small>
-                    </div>
-                    <button type="submit" class="btn-primary">Prüfung hinzufügen</button>
-                </form>
-            </div>
-
-            <div class="section-title">
-                <i class="fas fa-clipboard" aria-hidden="true"></i> Anstehende Prüfungen
-            </div>
-
-            <div id="exams-container" class="exams-container" aria-live="polite">
-                <p class="empty-state">Noch keine Prüfungen geplant.</p>
-            </div>
-        </div>
-
-        <!-- Analytics Page -->
-        <div id="analytics" class="page" role="tabpanel" aria-labelledby="analytics-tab">
-            <div class="page-header">
-                <h2>Statistiken</h2>
-                <p>Überwache deinen Lernfortschritt</p>
-            </div>
-
-            <div class="analytics-grid">
-                <div class="analytics-card">
-                    <div class="analytics-header">
-                        <h3>Lernzeit pro Tag</h3>
-                    </div>
-                    <div class="chart-container" aria-label="Diagramm: Lernzeit pro Tag">
-                        <canvas id="study-time-chart"></canvas>
-                    </div>
-                </div>
-                <div class="analytics-card">
-                    <div class="analytics-header">
-                        <h3>Quiz Leistung</h3>
-                    </div>
-                    <div class="chart-container" aria-label="Diagramm: Quiz Leistung">
-                        <canvas id="quiz-performance-chart"></canvas>
-                    </div>
-                </div>
-                <div class="analytics-card">
-                    <div class="analytics-header">
-                        <h3>Material-Fortschritt</h3>
-                    </div>
-                    <div class="chart-container" aria-label="Diagramm: Material-Fortschritt">
-                        <canvas id="material-progress-chart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Chat Page -->
-        <div id="chat" class="page" role="tabpanel" aria-labelledby="chat-tab">
-            <div class="page-header">
-                <h2>AI Chat</h2>
-                <p>Stelle Fragen zu deinen Lernmaterialien und bekomme sofortige Hilfe</p>
-            </div>
-
-            <div class="chat-container">
-                <div id="chat-messages" class="chat-messages" aria-live="polite">
-                    <div class="message ai-message">
-                        <div class="message-bubble">
-                            <p>Hallo! Ich bin dein persönlicher Lernassistent. Wie kann ich dir heute helfen?</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="chat-input">
-                    <label for="user-message" class="visually-hidden">Deine Nachricht</label>
-                    <textarea id="user-message" placeholder="Stelle eine Frage..." rows="2"></textarea>
-                    <button id="send-message" aria-label="Nachricht senden">
-                        <i class="fas fa-paper-plane" aria-hidden="true"></i>
-                    </button>
-                </div>
-                <div class="chat-tips">
-                    <p><i class="fas fa-lightbulb" aria-hidden="true"></i> Tipps:</p>
-                    <ul>
-                        <li>Stelle konkrete Fragen zu deinen Lernmaterialien</li>
-                        <li>Frage nach Erklärungen zu schwierigen Konzepten</li>
-                        <li>Bitte um Zusammenfassungen oder Lernpläne</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Study Groups Page -->
-        <div id="study-groups" class="page" role="tabpanel" aria-labelledby="study-groups-tab">
-            <div class="page-header">
-                <h2>Lerngruppen</h2>
-                <p>In der nächsten Version verfügbar</p>
-            </div>
-            <div class="coming-soon">
-                <i class="fas fa-users" aria-hidden="true"></i>
-                <h3>Bald verfügbar!</h3>
-                <p>Lerngruppen werden in der nächsten Version implementiert. Bleib dran!</p>
-            </div>
-        </div>
+      </div>
     </main>
 
     <!-- Modals -->
     <!-- Audio Recorder Modal -->
-    <div id="audio-recorder-modal" class="modal" role="dialog" aria-labelledby="audio-recorder-title"
-        aria-hidden="true">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="audio-recorder-title">Audio Notiz aufnehmen</h2>
-                <button class="close-modal" aria-label="Schließen">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="audio-recorder-interface">
-                    <div class="record-timer" aria-live="polite">00:00</div>
-                    <div class="record-controls">
-                        <button id="start-recording" class="btn-primary"><i class="fas fa-microphone"
-                                aria-hidden="true"></i> Aufnehmen</button>
-                        <button id="stop-recording" class="btn-danger" disabled><i class="fas fa-stop"
-                                aria-hidden="true"></i> Stoppen</button>
-                    </div>
-                    <div id="recordings-list" class="recordings-list" aria-live="polite"></div>
-                </div>
-            </div>
+    <div
+      id="audio-recorder-modal"
+      class="modal"
+      role="dialog"
+      aria-labelledby="audio-recorder-title"
+      aria-hidden="true"
+    >
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="audio-recorder-title">Audio Notiz aufnehmen</h2>
+          <button class="close-modal" aria-label="Schließen">&times;</button>
         </div>
+        <div class="modal-body">
+          <div class="audio-recorder-interface">
+            <div class="record-timer" aria-live="polite">00:00</div>
+            <div class="record-controls">
+              <button id="start-recording" class="btn-primary">
+                <i class="fas fa-microphone" aria-hidden="true"></i> Aufnehmen
+              </button>
+              <button id="stop-recording" class="btn-danger" disabled>
+                <i class="fas fa-stop" aria-hidden="true"></i> Stoppen
+              </button>
+            </div>
+            <div
+              id="recordings-list"
+              class="recordings-list"
+              aria-live="polite"
+            ></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Loading Modal -->
-    <div id="loading-modal" class="modal" role="dialog" aria-labelledby="loading-message" aria-hidden="true">
-        <div class="modal-content loading-content">
-            <div class="loading-spinner" aria-live="assertive">
-                <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                <p id="loading-message">Lädt...</p>
-            </div>
+    <div
+      id="loading-modal"
+      class="modal"
+      role="dialog"
+      aria-labelledby="loading-message"
+      aria-hidden="true"
+    >
+      <div class="modal-content loading-content">
+        <div class="loading-spinner" aria-live="assertive">
+          <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+          <p id="loading-message">Lädt...</p>
         </div>
+      </div>
     </div>
 
     <!-- Notification Container -->
     <div class="notification-container" aria-live="polite"></div>
-
-
- 
 
     <!-- JavaScript -->
     <script src="pdf-fix.js"></script>
@@ -617,23 +821,18 @@
     <script src="audio-recorder.js"></script>
 
     <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // This ensures init is called after all other DOMContentLoaded handlers
-    // that might be setting up parts of window.app have completed.
-    if (window.app && typeof window.app.init === 'function') {
-      console.log("All modules should be loaded. Initializing app...");
-      window.app.init();
-    } else {
-      console.error("Failed to initialize app: window.app or window.app.init is not available.");
-    }
-  });
-</script>
-
-
-
-    
-  
-    
-</body>
-
+      document.addEventListener("DOMContentLoaded", function () {
+        // This ensures init is called after all other DOMContentLoaded handlers
+        // that might be setting up parts of window.app have completed.
+        if (window.app && typeof window.app.init === "function") {
+          console.log("All modules should be loaded. Initializing app...");
+          window.app.init();
+        } else {
+          console.error(
+            "Failed to initialize app: window.app or window.app.init is not available."
+          );
+        }
+      });
+    </script>
+  </body>
 </html>
