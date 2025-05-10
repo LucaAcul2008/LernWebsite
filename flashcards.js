@@ -220,10 +220,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (prevCardBtn) prevCardBtn.addEventListener('click', showPrevCard);
     if (finishSessionBtn) finishSessionBtn.addEventListener('click', showStudySummary);
 
-    // Initialisierung
-    loadFlashcardSets();
-    showView('sets'); // Standardansicht
 
+   // Define escapeHtml utility function first
     const escapeHtml = window.app && typeof window.app.escapeHtml === 'function' 
         ? window.app.escapeHtml 
         : function(unsafe) { // Fallback simple escape
@@ -234,6 +232,18 @@ document.addEventListener('DOMContentLoaded', function () {
                  .replace(/"/g, "&quot;")
                  .replace(/'/g, "&#039;");
         };
+
+    // Initialisierung
+    loadFlashcardSets();
+    if (setsView && editorView && studyView && !editorView.classList.contains('hidden') && !studyView.classList.contains('hidden')) {
+      showView('sets'); // Standardansicht nur setzen, wenn nicht schon eine andere aktiv ist (z.B. durch deep link)
+    }
+
+    // Initialisierung
+    loadFlashcardSets();
+    showView('sets'); // Standardansicht
+
+    
 
 
     function loadFlashcardSets() {
@@ -488,21 +498,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
-    // Event Listeners
-    if (createSetBtn) createSetBtn.addEventListener('click', () => openSetEditor());
-    if (addCardToSetBtn) addCardToSetBtn.addEventListener('click', () => addCardEditFields()); // Fügt eine leere Karte hinzu
-    if (saveSetBtn) saveSetBtn.addEventListener('click', saveCurrentSet);
-    if (cancelSetEditBtn) cancelSetEditBtn.addEventListener('click', () => {
-        if (confirm("Nicht gespeicherte Änderungen gehen verloren. Wirklich abbrechen?")) {
-            editingSet = null; // Bearbeitungsstatus zurücksetzen
-            showView('sets');
-        }
-    });
-    
-    if (flipCardBtn) flipCardBtn.addEventListener('click', flipCurrentCard);
-    if (nextCardBtn) nextCardBtn.addEventListener('click', showNextCard);
-    if (prevCardBtn) prevCardBtn.addEventListener('click', showPrevCard);
-    if (finishSessionBtn) finishSessionBtn.addEventListener('click', showStudySummary);
+  
 
     // Initialisierung
     loadFlashcardSets();
@@ -511,12 +507,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     
     // Mache Funktionen für app.js zugänglich
-    if (!window.app) window.app = {}; // Sicherstellen, dass app existiert
-    window.app.flashcards = { 
+  window.app.flashcards = { 
         prepareEditorWithAICards: prepareEditorWithAICards,
-        openSetEditor: openSetEditor, // Falls von extern benötigt
-        startStudySession: startStudySession // Falls von extern benötigt
+        openSetEditor: openSetEditor,
+        startStudySession: startStudySession 
     };
+    console.log("Flashcards module initialized and attached to window.app.");
+    
 });
     
     // Mache einige Funktionen für app.js zugänglich, falls nötig

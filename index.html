@@ -616,6 +616,19 @@
     <script src="analytics.js"></script>
     <script src="audio-recorder.js"></script>
 
+    <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // This ensures init is called after all other DOMContentLoaded handlers
+    // that might be setting up parts of window.app have completed.
+    if (window.app && typeof window.app.init === 'function') {
+      console.log("All modules should be loaded. Initializing app...");
+      window.app.init();
+    } else {
+      console.error("Failed to initialize app: window.app or window.app.init is not available.");
+    }
+  });
+</script>
+
 
 
     

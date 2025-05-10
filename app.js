@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
   console.log("DOMContentLoaded (app.js): Event gefeuert.");
 
   // Definiere alle Eigenschaften und Methoden, für die app.js zuständig ist
-  window.app= {
+  const appCoreLogic = {
     materials: [],
     quizzes: [],
     exams: [],
@@ -19,26 +19,27 @@ document.addEventListener("DOMContentLoaded", function () {
     currentQuiz: null,
     wrongQuestions: [],
     apiEndpoint: "http://localhost:3000", // Points to your local Ollama server
+    db: null, // Für die IndexedDB Instanz
 
     init: function () {
       console.log("App init: Initialisiere App...");
-      // 'this' wird korrekt auf window.app verweisen, nachdem Object.assign ausgeführt wurde
-      this.loadData(); // Stellt sicher, dass Daten geladen werden
+      this.loadData();
       this.initIndexedDB().then(() => {
         console.log("App init: IndexedDB initialisiert, lade PDF-Daten.");
-        this.loadPdfDataFromIndexedDB(); // Lade vorhandene PDFs
+        this.loadPdfDataFromIndexedDB();
       }).catch(error => {
         console.error("App init: Fehler bei der Initialisierung von IndexedDB:", error);
       });
-      this.updateUI(); // Aktualisiert UI basierend auf geladenen Daten
-      this.showPage("dashboard"); // Zeigt die Startseite
-      this.setupEventListeners(); // Richtet alle Event-Listener ein
-      this.updatePomodoroTasksDropdown(); // Aktualisiert Dropdown im Pomodoro-Timer
+      this.updateUI();
+      this.showPage("dashboard");
+      this.setupEventListeners();
+      this.updatePomodoroTasksDropdown();
       console.log("App init: App Initialisierung abgeschlossen.");
     },
+    
 
     loadData: function () {
-      // Load data from localStorage
+      // Deine loadData Implementierung (siehe #attachment_app_js_context_1 Zeile 30)
       try {
         const materials = localStorage.getItem("study-materials");
         const quizzes = localStorage.getItem("study-quizzes");
@@ -50,7 +51,6 @@ document.addEventListener("DOMContentLoaded", function () {
         if (exams) this.exams = JSON.parse(exams);
         if (wrongQuestions) this.wrongQuestions = JSON.parse(wrongQuestions);
 
-        // Load PDF data from IndexedDB if available
         this.loadPdfDataFromIndexedDB();
       } catch (err) {
         console.error("Error loading data:", err);
@@ -509,6 +509,7 @@ document.addEventListener("DOMContentLoaded", function () {
     
 
     generateAIFlashcards: function (material) {
+      // Deine komplette generateAIFlashcards Implementierung (siehe #attachment_app_js_context_1 Zeile 514)
       if (!material || !material.content) {
         this.showNotification(
           "Fehler",
@@ -545,14 +546,12 @@ document.addEventListener("DOMContentLoaded", function () {
               "success"
             );
 
-            // Übergebe die Karten an das flashcards.js Modul
             if (
               window.app &&
               window.app.flashcards &&
-              typeof window.app.flashcards.prepareEditorWithAICards ===
-                "function"
+              typeof window.app.flashcards.prepareEditorWithAICards === "function"
             ) {
-              this.showPage("flashcards"); // Zur Lernkarten-Seite wechseln
+              this.showPage("flashcards");
               window.app.flashcards.prepareEditorWithAICards(
                 material.name,
                 response.flashcards
@@ -560,7 +559,7 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
               console.error(
                 "generateAIFlashcards FEHLER: Flashcard-Modul oder prepareEditorWithAICards-Funktion nicht verfügbar. window.app.flashcards:",
-                window.app ? window.app.flashcards : "window.app ist nicht definiert"
+                window.app && window.app.flashcards ? window.app.flashcards : (window.app ? "window.app.flashcards ist undefined" : "window.app ist nicht definiert")
               );
               this.showNotification(
                 "Fehler",
@@ -576,7 +575,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 errorMessage = "Die KI hat keine Lernkarten für dieses Material zurückgegeben.";
             }
             console.error("generateAIFlashcards FEHLER:", errorMessage, "Antwort:", response);
-            throw new Error(errorMessage);
+            // throw new Error(errorMessage); // Besser: Notification anzeigen
+            this.showNotification("Fehler bei KI-Antwort", errorMessage, "error");
           }
         })
         .catch((error) => {
@@ -2888,20 +2888,71 @@ document.addEventListener("DOMContentLoaded", function () {
       }, 300);
     },
 
-    getIconForNotificationType: function (type) {
+    getIconForNotificationType: function (type) { // Beispiel für die letzte Methode
       switch (type) {
-        case "success":
-          return "fa-check-circle";
-        case "error":
-          return "fa-exclamation-circle";
-        case "warning":
-          return "fa-exclamation-triangle";
-        case "info":
-        default:
-          return "fa-info-circle";
+        case "success": return "fa-check-circle";
+        case "error": return "fa-exclamation-circle";
+        case "warning": return "fa-exclamation-triangle";
+        case "info": default: return "fa-info-circle";
       }
     },
+
+    
   };
+
+  if (typeof window.app === 'undefined') {
+    console.log("DOMContentLoaded (app.js): window.app nicht vorhanden, erstelle es.");
+    window.app = {};
+  } else {
+    console.log("DOMContentLoaded (app.js): window.app bereits vorhanden, erweitere es.");
+  }
+
+  Object.assign(window.app, appCoreLogic);
+  console.log("DOMContentLoaded (app.js): window.app wurde mit appCoreLogic erweitert.");
+
+  // Enhance showPage function to handle alternative IDs
+  // Stelle sicher, dass dies window.app.showPage modifiziert und VOR init() aufgerufen wird.
+  if (window.app && typeof window.app.showPage === 'function') {
+    const originalShowPageGlobal = window.app.showPage; // Korrekt von window.app holen
+    window.app.showPage = function (pageId) { // Korrekt an window.app zuweisen
+      console.log(`Attempting to show page (enhanced): ${pageId}`);
+      let currentPageId = pageId;
+      if (pageId === "material-view") {
+        console.log("Redirecting to material-viewer");
+        currentPageId = "material-viewer";
+      }
+      const page = document.getElementById(currentPageId);
+      if (!page) {
+        console.error(`Page with ID "${currentPageId}" not found. Adding safety div.`);
+        const placeholder = document.createElement("div");
+        placeholder.id = currentPageId;
+        placeholder.classList.add("page");
+        placeholder.innerHTML = `
+          <div class="error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>Fehler: Diese Seite (${currentPageId}) konnte nicht geladen werden.</p>
+            <button class="btn-primary" onclick="window.app.showPage('dashboard')">Zurück zum Dashboard</button>
+          </div>`;
+        const mainContent = document.querySelector(".main-content");
+        if (mainContent) mainContent.appendChild(placeholder);
+        // Hier könntest du entscheiden, ob originalShowPageGlobal trotzdem aufgerufen werden soll
+        // oder ob die Anzeige des Placeholders ausreicht.
+        // Für dieses Beispiel rufen wir originalShowPageGlobal auf, damit die restliche Logik (z.B. active class auf nav) ausgeführt wird.
+      }
+      return originalShowPageGlobal.call(window.app, pageId); // Rufe die ursprüngliche Funktion mit korrektem Kontext auf
+    };
+    console.log("DOMContentLoaded (app.js): showPage wurde erweitert.");
+  } else {
+    console.error("DOMContentLoaded (app.js): window.app.showPage ist keine Funktion oder window.app nicht definiert, kann nicht erweitert werden.");
+  }
+
+  // Initialisiere die App EINMAL, nachdem window.app vollständig konfiguriert ist.
+  if (window.app && typeof window.app.init === 'function') {
+    window.app.init();
+  } else {
+    console.error("DOMContentLoaded (app.js): App-Kern konnte nicht initialisiert werden. window.app.init ist nicht verfügbar.");
+  }
+  
 
   // Enhance showPage function to handle alternative IDs
   const originalShowPage = app.showPage;
@@ -2945,8 +2996,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     return originalShowPage.call(this, pageId);
   };
-  // Initialize the application
-  window.app.init();
+  // // Initialize the application
+  // window.app.init();
 
 // Stelle sicher, dass window.app existiert und füge die appCoreProperties hinzu/überschreibe sie.
   // Dies bewahrt andere Eigenschaften, die möglicherweise von anderen Skripten (wie flashcards.js) hinzugefügt wurden.
