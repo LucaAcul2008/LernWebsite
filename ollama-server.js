@@ -77,52 +77,54 @@ app.use((req, res, next) => {
 // Input validation middleware
 const validateApiRequest = (req, res, next) => {
   const { action, message, context, material, exam, materials } = req.body;
-  
+
   if (!action) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Missing required parameter: action' 
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required parameter: action'
     });
   }
-  
-  const validActions = ['chatMessage', 'summarize', 'generateQuiz', 'generateStudyPlan', 'getStudyTips'];
+
+  // HIER "generateFlashcards" HINZUFÜGEN
+  const validActions = ['chatMessage', 'summarize', 'generateQuiz', 'generateStudyPlan', 'getStudyTips', 'generateFlashcards'];
   if (!validActions.includes(action)) {
-    return res.status(400).json({ 
-      success: false, 
-      error: `Invalid action. Must be one of: ${validActions.join(', ')}` 
+    return res.status(400).json({
+      success: false,
+      error: `Invalid action. Must be one of: ${validActions.join(', ')}`
     });
   }
-  
+
   // Action-specific validations
   if (action === 'chatMessage' && !message) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Missing required parameter: message' 
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required parameter: message'
     });
   }
-  
-  if ((action === 'summarize' || action === 'generateQuiz') && 
+
+  // HIER AUCH FÜR 'generateFlashcards' PRÜFEN
+  if ((action === 'summarize' || action === 'generateQuiz' || action === 'generateFlashcards') &&
       (!material || !material.content)) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Missing required parameter: material with content' 
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required parameter: material with content for the specified action'
     });
   }
-  
+
   if (action === 'generateStudyPlan' && (!exam || !materials || !Array.isArray(materials))) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Missing required parameters for study plan: exam and materials array' 
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required parameters for study plan: exam and materials array'
     });
   }
-  
+
   if (action === 'getStudyTips' && !exam) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Missing required parameter: exam' 
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required parameter: exam'
     });
   }
-  
+
   next();
 };
 
@@ -184,50 +186,57 @@ async function processPrompt(prompt, action, retries = 0) {
   }
 }
 
-
+// Middleware für Request ID
+app.use((req, res, next) => {
+  req.requestId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+  next();
+});
 
 // Add compatibility endpoint for /api/ollama that forwards to /api/ai
 // Replace the problematic compatibility endpoint with a working version
 // Add compatibility endpoint for /api/ollama that forwards to /api/ai
 app.post('/api/ai', validateApiRequest, async (req, res) => {
+  // Der Konsolen-Log hier ist etwas irreführend, da dies der primäre /api/ai Endpunkt ist,
+  // nicht der /api/ollama Kompatibilitätsendpunkt.
+  // Ich lasse ihn aber bestehen, falls du ihn aus einem bestimmten Grund so wolltest.
+  // Besser wäre: console.log(`[${new Date().toISOString()}] [${req.requestId}] 🚀 Handling request for /api/ai`);
   console.log(`[${new Date().toISOString()}] [${req.requestId}] ⚠️ Deprecated endpoint used: /api/ollama - handling with same logic as /api/ai`);
-  
+
   try {
     const { action, message, context, material, exam, materials } = req.body;
-    
-    console.log(`[${new Date().toISOString()}] [${req.requestId}] 📥 Received ${action} request via /api/ollama`);
-    
+
+    console.log(`[${new Date().toISOString()}] [${req.requestId}] 📥 Received ${action} request via /api/ai`); // Angepasst von /api/ollama
+
     let prompt = "";
-    
+
     // Create different prompts based on the action
     switch (action) {
       case 'chatMessage':
-        prompt = `Du bist ein KI-Lernassistent namens "LucaAcul", der Studenten beim Lernen hilft. Antworte auf Deutsch. 
+        prompt = `Du bist ein KI-Lernassistent namens "LucaAcul", der Studenten beim Lernen hilft. Antworte auf Deutsch.
                 Deine Antworten sollten hilfreich, präzise und ermunternd sein.`;
-        
+
         if (context?.upcomingExams?.length > 0) {
-          prompt += `\nDer Student hat folgende anstehende Prüfungen: ${context.upcomingExams.map(e => 
+          prompt += `\nDer Student hat folgende anstehende Prüfungen: ${context.upcomingExams.map(e =>
             `${e.name} (${e.subject}) in ${e.daysLeft} Tagen`).join(', ')}.`;
-          
+
           if (context.upcomingExams[0].daysLeft <= 3) {
             prompt += `\nDie nächste Prüfung ist sehr bald! Deine Antworten sollten kurz, konkret und unmittelbar hilfreich sein.`;
           }
         }
-        
+
         if (material?.content) {
           const limitedContent = material.content.substring(0, 12000);
           prompt += `\nDer Student lernt gerade: "${material.name}"\n\nEin Ausschnitt aus dem Inhalt: "${limitedContent}..."`;
           prompt += `\nBeziehe dich in deiner Antwort spezifisch auf dieses Material, wenn es für die Frage relevant ist.`;
         }
-        
+
         prompt += `\n\nFrage des Studenten: ${message}\n\nDeine hilfreiche Antwort:`;
         break;
-        
-      // Handle other action types the same as in your /api/ai endpoint
+
       case 'summarize':
-        prompt = `Bitte erstelle eine SEHR AUSFÜHRLICHE und detaillierte strukturierte Zusammenfassung des folgenden Textes. 
+        prompt = `Bitte erstelle eine SEHR AUSFÜHRLICHE und detaillierte strukturierte Zusammenfassung des folgenden Textes.
       Die Zusammenfassung MUSS MINDESTENS 1000 WÖRTER enthalten und sollte folgende Elemente enthalten:
-      
+
       1. Eine umfassende Einleitung (6-8 Sätze)
       2. Die Hauptthemen und wichtigsten Konzepte in detaillierter Form mit vielen Beispielen
       3. Eine tiefgehende Gliederung ALLER relevanten Punkte mit Beispielen und Erläuterungen
@@ -236,21 +245,19 @@ app.post('/api/ai', validateApiRequest, async (req, res) => {
       6. Eine kritische Einschätzung und Analyse der wichtigsten Inhalte
       7. Praktische Anwendungsbeispiele des Gelernten
       8. Eine umfassende Zusammenfassung am Ende
-      
+
       Formatiere deine Antwort mit Überschriften (## für Hauptüberschriften, ### für Unterüberschriften) und Aufzählungspunkten (* für Listen).
       Nutze auch **Hervorhebungen** für wichtige Begriffe und *Kursivschrift* für Definitionen.
       Antworte auf Deutsch und sorge für eine übersichtliche, lernfreundliche und SEHR UMFANGREICHE Formatierung.
       DENKE DARAN: Die Zusammenfassung MUSS sehr ausführlich sein und mindestens 1000 Wörter umfassen und auch mindestens 5-6 Sätze pro unterkapitel enthalten.
       Hier ist der Text, den du zusammenfassen sollst:\n\n"${material.name}"\n\n${material.content.substring(0, 20000)}...`;
-      
-      
         break;
-        
+
       case 'generateQuiz':
         prompt = `Als ein erfahrener Prüfungsersteller, erstelle ein Multiple-Choice-Quiz mit EXAKT 20 Fragen basierend auf diesem Text.
-    
+
     WICHTIG - Du musst deine Antwort als ein JSON-Objekt im EXAKT folgenden Format formatieren:
-    
+
     {
       "questions": [
         {
@@ -261,18 +268,34 @@ app.post('/api/ai', validateApiRequest, async (req, res) => {
         ... weitere 19 Fragen
       ]
     }
-    
+
     Die Fragen sollten verschiedene Schwierigkeitsgrade haben und unterschiedliche kognitive Fähigkeiten testen (Wissen, Verständnis, Anwendung, Analyse).
     Stelle sicher, dass die falschen Antworten plausibel sind.
     Keine zusätzlichen Erklärungen oder Text. Nur JSON.
     Der Index der richtigen Antwort (correctAnswerIndex) muss eine Zahl zwischen 0 und 3 sein.
     Erstelle Fragen, die das gesamte Themenspektrum des Textes abdecken.
-    
+
     Hier ist der Text für das Quiz: "${material.name}"\n\n${material.content.substring(0, 20000)}..."`;
         break;
-        
+
+      // NEUER CASE FÜR LERNKARTEN
+      c// NEUER CASE FÜR LERNKARTEN
+      case 'generateFlashcards':
+        prompt = `Erstelle Lernkarten (Frage und Antwort) basierend auf dem folgenden Text.
+Gib die Lernkarten als JSON-Array zurück, wobei jedes Objekt eine "question" und eine "answer" Eigenschaft hat.
+Stelle sicher, dass die Ausgabe valides JSON ist, das direkt geparst werden kann. Beginne mit [ und ende mit ].
+Beispiel: [{"question": "Was ist die Hauptstadt von Deutschland?", "answer": "Berlin"}, {"question": "...", "answer": "..."}]
+Maximal 15 Lernkarten.
+WICHTIG: Vermeide Fragen, die sich auf die genaue visuelle Darstellung von Tabellen, Diagrammen oder spezifischen Seitenlayouts beziehen, wenn diese Informationen nicht explizit im Text beschrieben sind. Formuliere Fragen, die auf dem reinen Textverständnis basieren und ohne das Originaldokument vor Augen zu haben beantwortet werden können.
+
+Text:
+${material.content.substring(0, 12000)} 
+
+JSON-Array mit Lernkarten:`; // Stelle sicher, dass der Text nicht zu lang ist für den Prompt
+        break;
+
       case 'generateStudyPlan':
-        prompt = `Erstelle einen detaillierten Lernplan für die Prüfung "${exam.name}" (${exam.subject}), die in ${exam.daysLeft} Tagen stattfindet. 
+        prompt = `Erstelle einen detaillierten Lernplan für die Prüfung "${exam.name}" (${exam.subject}), die in ${exam.daysLeft} Tagen stattfindet.
 
 Der Plan sollte:
 1. Die verbleibende Zeit optimal nutzen
@@ -286,11 +309,11 @@ ${materials.filter(m => m.completed).length > 0 ? `Davon wurden bereits bearbeit
 Formatiere den Plan mit HTML-Tags (<div>, <h3>, <ul>, <li>, <span>) für eine ansprechende Darstellung.
 Verwende <span class="highlight"> für wichtige Textstellen und <span class="emphasis"> für Betonungen.`;
         break;
-        
+
       case 'getStudyTips':
         let tipContext = `Fach: ${exam.subject}, Prüfung: ${exam.name}, Tage bis zur Prüfung: ${exam.daysLeft}`;
-        
-        prompt = `Gib mir 5 spezifische Lerntipps für meine ${exam.subject}-Prüfung (${exam.name}) in ${exam.daysLeft} Tagen. 
+
+        prompt = `Gib mir 5 spezifische Lerntipps für meine ${exam.subject}-Prüfung (${exam.name}) in ${exam.daysLeft} Tagen.
 
 Die Tipps sollten:
 1. Auf das Fach ${exam.subject} zugeschnitten sein
@@ -303,130 +326,160 @@ ${exam.daysLeft >= 14 ? "Da noch ausreichend Zeit ist, schlage einen strukturier
 
 Formatiere deine Antwort mit HTML-Tags für eine bessere Darstellung. Verwende <h3> für Überschriften, <ul> und <li> für Listen, und <span class="highlight"> für wichtige Punkte.`;
         break;
-        
+
       default:
+        // Dieser Fall sollte durch validateApiRequest abgedeckt sein, aber als Sicherheit:
+        console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Unbekannte Aktion im Prompt-Switch: ${action}`);
         return res.status(400).json({ success: false, error: 'Unbekannte Aktion' });
     }
-    
-    console.log(`[${new Date().toISOString()}] [${req.requestId}] 📤 Sending ${action} request to AI API via compatibility endpoint...`);
-    
+
+    console.log(`[${new Date().toISOString()}] [${req.requestId}] 📤 Sending ${action} request to AI API...`); // Angepasst von "via compatibility endpoint"
+
     // Call API with prompt - use the same mechanism as your /api/ai endpoint
     const aiResponseData = await processPrompt(prompt, action);
-    
+
     const aiResponse = aiResponseData.response;
     console.log(`[${new Date().toISOString()}] [${req.requestId}] ✅ Got response from AI API for ${action} (${aiResponse.length} chars)`);
-    
+
     // Return the same response structure as your /api/ai endpoint
     switch (action) {
       case 'chatMessage':
         return res.json({ success: true, reply: aiResponse });
-        
+
       case 'summarize':
         return res.json({ success: true, summary: aiResponse });
-        
-        case 'generateQuiz':
+
+      case 'generateQuiz':
+        try {
+          console.log(`[${new Date().toISOString()}] [${req.requestId}] 🔍 Attempting to parse quiz response for action: ${action}`);
+
+          const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+
+          if (!jsonMatch) {
+            console.log(`[${new Date().toISOString()}] [${req.requestId}] ❌ No JSON object pattern found in the response for quiz`);
+            throw new Error("No JSON object found in response for quiz");
+          }
+
+          const jsonString = jsonMatch[0];
+          console.log(`[${new Date().toISOString()}] [${req.requestId}] 📋 Extracted JSON pattern for quiz:`, jsonString.substring(0, 100) + "...");
+
+          let quizData;
           try {
-            console.log(`[${new Date().toISOString()}] [${req.requestId}] 🔍 Attempting to parse quiz response in /api/ollama endpoint`);
-            
-            // Better JSON extraction - look for content between curly braces
-            const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-            
-            if (!jsonMatch) {
-              console.log(`[${new Date().toISOString()}] [${req.requestId}] ❌ No JSON pattern found in the response`);
-              throw new Error("No JSON found in response");
-            }
-            
-            const jsonString = jsonMatch[0];
-            console.log(`[${new Date().toISOString()}] [${req.requestId}] 📋 Extracted JSON pattern:`, jsonString.substring(0, 100) + "...");
-            
-            let quizData;
-            try {
-              quizData = JSON.parse(jsonString);
-              console.log(`[${new Date().toISOString()}] [${req.requestId}] ✅ Successfully parsed JSON`);
-            } catch (jsonError) {
-              console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ JSON parse error:`, jsonError.message);
-              throw new Error("Invalid JSON format");
-            }
-            
-            // Validate quiz structure
-            if (!quizData.questions || !Array.isArray(quizData.questions) || quizData.questions.length === 0) {
-              console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Invalid quiz structure:`, quizData);
-              throw new Error("Invalid quiz structure");
-            }
-            
-            // Further validation and cleanup of the quiz data
-            quizData.questions = quizData.questions.map(q => {
-              // Ensure all questions have exactly 4 options
-              if (!q.options || !Array.isArray(q.options)) {
-                q.options = ["Option A", "Option B", "Option C", "Option D"];
-              } else if (q.options.length < 4) {
-                while (q.options.length < 4) {
-                  q.options.push(`Option ${q.options.length + 1}`);
-                }
-              } else if (q.options.length > 4) {
-                q.options = q.options.slice(0, 4);
+            quizData = JSON.parse(jsonString);
+            console.log(`[${new Date().toISOString()}] [${req.requestId}] ✅ Successfully parsed JSON for quiz`);
+          } catch (jsonError) {
+            console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ JSON parse error for quiz:`, jsonError.message);
+            console.error(`[${new Date().toISOString()}] [${req.requestId}] 📄 Raw AI response for quiz:`, aiResponse);
+            throw new Error("Invalid JSON format for quiz");
+          }
+
+          if (!quizData.questions || !Array.isArray(quizData.questions) || quizData.questions.length === 0) {
+            console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Invalid quiz structure:`, quizData);
+            throw new Error("Invalid quiz structure");
+          }
+
+          quizData.questions = quizData.questions.map(q => {
+            if (!q.options || !Array.isArray(q.options)) {
+              q.options = ["Option A", "Option B", "Option C", "Option D"];
+            } else if (q.options.length < 4) {
+              while (q.options.length < 4) {
+                q.options.push(`Option ${q.options.length + 1}`);
               }
-              
-              // Ensure correctAnswerIndex is valid
-              if (typeof q.correctAnswerIndex !== 'number' || 
-                q.correctAnswerIndex < 0 || 
-                q.correctAnswerIndex > 3) {
-                q.correctAnswerIndex = Math.floor(Math.random() * 4);
-              }
-              
-              return q;
-            });
-            
-            // Ensure we have exactly 20 questions
-            const TARGET_QUESTIONS = 20;
-            if (quizData.questions.length < TARGET_QUESTIONS) {
-              // Add dummy questions if we have fewer than 20
-              const neededQuestions = TARGET_QUESTIONS - quizData.questions.length;
-              for (let i = 0; i < neededQuestions; i++) {
-                quizData.questions.push({
-                  question: `Zusatzfrage ${quizData.questions.length + 1} zu "${material.name}"`,
-                  options: ["Option A", "Option B", "Option C", "Option D"],
-                  correctAnswerIndex: Math.floor(Math.random() * 4)
-                });
-              }
-            } else if (quizData.questions.length > TARGET_QUESTIONS) {
-              // Trim to 20 questions if we have more
-              quizData.questions = quizData.questions.slice(0, TARGET_QUESTIONS);
+            } else if (q.options.length > 4) {
+              q.options = q.options.slice(0, 4);
             }
-            
-            return res.json({ success: true, quiz: quizData });
-            
-          } catch (error) {
-            console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Error parsing quiz JSON:`, error);
-            
-            // Generate a fallback quiz with 20 questions
-            const fallbackQuiz = {
-              questions: Array(20).fill(0).map((_, i) => ({
-                question: `Frage ${i+1} zu "${material.name}"`,
+
+            if (typeof q.correctAnswerIndex !== 'number' ||
+              q.correctAnswerIndex < 0 ||
+              q.correctAnswerIndex > 3) {
+              q.correctAnswerIndex = Math.floor(Math.random() * 4);
+            }
+            return q;
+          });
+
+          const TARGET_QUESTIONS = 20;
+          if (quizData.questions.length < TARGET_QUESTIONS) {
+            const neededQuestions = TARGET_QUESTIONS - quizData.questions.length;
+            for (let i = 0; i < neededQuestions; i++) {
+              quizData.questions.push({
+                question: `Zusatzfrage ${quizData.questions.length + 1} zu "${material.name}"`,
                 options: ["Option A", "Option B", "Option C", "Option D"],
                 correctAnswerIndex: Math.floor(Math.random() * 4)
-              }))
-            };
-            
-            return res.json({ success: true, quiz: fallbackQuiz });
+              });
+            }
+          } else if (quizData.questions.length > TARGET_QUESTIONS) {
+            quizData.questions = quizData.questions.slice(0, TARGET_QUESTIONS);
           }
-        
+          return res.json({ success: true, quiz: quizData });
+
+        } catch (error) {
+          console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Error processing quiz JSON for action ${action}:`, error.message);
+          const fallbackQuiz = {
+            questions: Array(20).fill(0).map((_, i) => ({
+              question: `Frage ${i + 1} zu "${material.name}" (Fallback)`,
+              options: ["Option A", "Option B", "Option C", "Option D"],
+              correctAnswerIndex: Math.floor(Math.random() * 4)
+            }))
+          };
+          return res.json({ success: true, quiz: fallbackQuiz, error: `Failed to process quiz: ${error.message}` });
+        }
+
+      // NEUER CASE FÜR LERNKARTEN ANTWORTVERARBEITUNG
+      case 'generateFlashcards':
+        try {
+          console.log(`[${new Date().toISOString()}] [${req.requestId}] 🔍 Attempting to parse flashcards response for action: ${action}`);
+          // Lernkarten sollten ein JSON-Array sein
+          const jsonMatch = aiResponse.match(/\[[\s\S]*\]/); // Sucht nach einem Array [...]
+
+          if (!jsonMatch) {
+            console.log(`[${new Date().toISOString()}] [${req.requestId}] ❌ No JSON array pattern found in the response for flashcards`);
+            throw new Error("No JSON array found in response for flashcards");
+          }
+          const jsonString = jsonMatch[0];
+          console.log(`[${new Date().toISOString()}] [${req.requestId}] 📋 Extracted JSON pattern for flashcards:`, jsonString.substring(0, 100) + "...");
+
+          let flashcardsData;
+          try {
+            flashcardsData = JSON.parse(jsonString);
+            console.log(`[${new Date().toISOString()}] [${req.requestId}] ✅ Successfully parsed JSON for flashcards`);
+          } catch (jsonError) {
+            console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ JSON parse error for flashcards:`, jsonError.message);
+            console.error(`[${new Date().toISOString()}] [${req.requestId}] 📄 Raw AI response for flashcards:`, aiResponse);
+            throw new Error("Invalid JSON format for flashcards");
+          }
+
+          if (!Array.isArray(flashcardsData) || flashcardsData.some(card => typeof card.question === 'undefined' || typeof card.answer === 'undefined')) {
+            console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Invalid flashcards structure:`, flashcardsData);
+            throw new Error("Invalid flashcards structure: Expected array of {question, answer} objects.");
+          }
+          // Optional: Anzahl begrenzen, falls die KI mehr als gewünscht liefert
+          flashcardsData = flashcardsData.slice(0, 15);
+
+          return res.json({ success: true, flashcards: flashcardsData });
+        } catch (error) {
+          console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Error processing flashcards JSON for action ${action}:`, error.message);
+          // Fallback: leeres Array oder spezifischere Fehlermeldung
+          return res.status(500).json({ success: false, error: 'Failed to process flashcards from AI response', details: error.message });
+        }
+
       case 'generateStudyPlan':
         return res.json({ success: true, studyPlan: aiResponse });
-        
+
       case 'getStudyTips':
         return res.json({ success: true, studyTips: aiResponse });
-        
+
       default:
-        return res.json({ success: true, data: aiResponse });
+        // Sollte nicht erreicht werden, wenn validateApiRequest korrekt funktioniert
+        console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Unbekannte Aktion im Response-Switch: ${action}`);
+        return res.json({ success: true, data: aiResponse }); // Oder Fehler senden
     }
-    
+
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Error in compatibility endpoint:`, error.message);
-    res.status(500).json({ 
-      success: false, 
+    console.error(`[${new Date().toISOString()}] [${req.requestId}] ❌ Error in /api/ai endpoint:`, error.message);
+    res.status(500).json({
+      success: false,
       error: 'Fehler bei der AI-Anfrage',
-      message: error.message
+      message: error.message // Im Entwicklungsmodus ist die detaillierte Nachricht hilfreich
     });
   }
 });

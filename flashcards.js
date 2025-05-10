@@ -439,12 +439,24 @@ document.addEventListener('DOMContentLoaded', function () {
         else if (viewName === 'study' && studyView) studyView.classList.remove('hidden');
     }
     
-    // NEUE FUNKTION zum Vorbereiten des Editors mit KI-Karten
     function prepareEditorWithAICards(sourceMaterialName, cardsData) {
         editingSet = null; // KI-Karten erstellen immer ein neues Set (oder Entwurf)
-        setNameInput.value = `KI-Karten für: ${sourceMaterialName}`;
+        setNameInput.value = `KI-Karten für: ${escapeHtml(sourceMaterialName)}`;
         cardsEditorContainer.innerHTML = ''; // Vorherige Karten löschen
-        
+
+        // HINWEIS FÜR DEN BENUTZER EINFÜGEN
+        const editorInfoMessage = document.createElement('p');
+        editorInfoMessage.className = 'editor-info-message'; // Klasse für Styling hinzufügen
+        editorInfoMessage.innerHTML = '<i class="fas fa-info-circle"></i> Dies sind KI-generierte Lernkarten. Bitte überprüfe und bearbeite sie bei Bedarf, bevor du sie speicherst.';
+        // Stelle sicher, dass die Nachricht vor den Kartenfeldern, aber innerhalb des Editor-Containers platziert wird.
+        // Du könntest sie auch direkt über 'cardsEditorContainer' platzieren, je nach gewünschtem Layout.
+        if (editorView && editorView.querySelector('#flashcard-set-editor-title')) { // Finde ein Element, vor dem es eingefügt werden kann
+            editorView.querySelector('#flashcard-set-editor-title').insertAdjacentElement('afterend', editorInfoMessage);
+        } else { // Fallback, falls das obige Element nicht da ist
+            cardsEditorContainer.insertAdjacentElement('beforebegin', editorInfoMessage);
+        }
+
+
         if (cardsData && Array.isArray(cardsData) && cardsData.length > 0) {
             cardsData.forEach(card => {
                 if (card && typeof card.question === 'string' && typeof card.answer === 'string') {
@@ -461,6 +473,17 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         const editorTitleEl = document.getElementById('flashcard-set-editor-title');
         if (editorTitleEl) editorTitleEl.textContent = "KI-generiertes Lernkarten-Set (Entwurf)";
+        
+        // Entferne eine eventuell vorhandene alte Info-Nachricht, bevor eine neue Ansicht gezeigt wird
+        // (oder stelle sicher, dass sie nur einmal hinzugefügt wird)
+        // Dies ist eine einfache Implementierung; eine robustere Lösung würde die Nachricht beim Verlassen des Editors entfernen.
+        const existingInfoMessages = editorView ? editorView.querySelectorAll('.editor-info-message') : [];
+        if (existingInfoMessages.length > 1) { // Wenn mehr als eine da ist (durch mehrfaches Aufrufen)
+            for(let i = 0; i < existingInfoMessages.length -1; i++) {
+                existingInfoMessages[i].remove();
+            }
+        }
+
         showView('editor');
     }
 

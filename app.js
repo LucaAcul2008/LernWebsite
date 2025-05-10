@@ -8,8 +8,10 @@ window.fetch = function (url, options) {
 };
 
 document.addEventListener("DOMContentLoaded", function () {
-  // Initialize the application
-  window.app = {
+  console.log("DOMContentLoaded (app.js): Event gefeuert.");
+
+  // Definiere alle Eigenschaften und Methoden, für die app.js zuständig ist
+  window.app= {
     materials: [],
     quizzes: [],
     exams: [],
@@ -19,10 +21,20 @@ document.addEventListener("DOMContentLoaded", function () {
     apiEndpoint: "http://localhost:3000", // Points to your local Ollama server
 
     init: function () {
-      this.loadData();
-      this.setupEventListeners();
-      this.updateUI();
-      this.showPage("dashboard");
+      console.log("App init: Initialisiere App...");
+      // 'this' wird korrekt auf window.app verweisen, nachdem Object.assign ausgeführt wurde
+      this.loadData(); // Stellt sicher, dass Daten geladen werden
+      this.initIndexedDB().then(() => {
+        console.log("App init: IndexedDB initialisiert, lade PDF-Daten.");
+        this.loadPdfDataFromIndexedDB(); // Lade vorhandene PDFs
+      }).catch(error => {
+        console.error("App init: Fehler bei der Initialisierung von IndexedDB:", error);
+      });
+      this.updateUI(); // Aktualisiert UI basierend auf geladenen Daten
+      this.showPage("dashboard"); // Zeigt die Startseite
+      this.setupEventListeners(); // Richtet alle Event-Listener ein
+      this.updatePomodoroTasksDropdown(); // Aktualisiert Dropdown im Pomodoro-Timer
+      console.log("App init: App Initialisierung abgeschlossen.");
     },
 
     loadData: function () {
@@ -494,61 +506,33 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     },
 
-    setupEventListeners: function () {
-      // ... (existing event listeners) ...
-
-      const generateFlashcardsAIBtn = document.getElementById(
-        "generate-flashcards-ai-btn"
-      );
-      if (generateFlashcardsAIBtn) {
-        generateFlashcardsAIBtn.addEventListener("click", () => {
-          if (this.currentMaterial) {
-            this.generateAIFlashcards(this.currentMaterial);
-          } else {
-            this.showNotification(
-              "Fehler",
-              "Kein Material ausgewählt, um Lernkarten zu erstellen.",
-              "error"
-            );
-          }
-        });
-      }
-    },
+    
 
     generateAIFlashcards: function (material) {
-      if (!material || !material.content || material.content.trim() === "") {
+      if (!material || !material.content) {
         this.showNotification(
           "Fehler",
-          "Material hat keinen Inhalt für die Lernkartenerstellung.",
+          "Kein Materialinhalt zum Erstellen von Lernkarten vorhanden.",
           "error"
-        );
-        console.error(
-          "generateAIFlashcards: Material content is missing for material:",
-          material.name
         );
         return;
       }
-
-      document.getElementById("loading-modal").classList.add("active");
-      document.getElementById("loading-message").textContent =
-        "KI generiert Lernkarten...";
-      console.log(
-        `generateAIFlashcards: Generating AI flashcards for material: ${material.name}`
+      this.showNotification(
+        "Info",
+        "Generiere Lernkarten mit KI... Dies kann einen Moment dauern.",
+        "info"
       );
-
-      // Ggf. die Länge des Inhalts für die API begrenzen
-      const contentForAI = material.content.substring(0, 15000);
 
       this.callOllamaAPI({
         action: "generateFlashcards",
         material: {
           id: material.id,
           name: material.name,
-          content: contentForAI,
+          content: material.content,
         },
       })
         .then((response) => {
-          document.getElementById("loading-modal").classList.remove("active");
+          console.log("generateAIFlashcards: Antwort von API erhalten:", response);
           if (
             response &&
             response.success &&
@@ -575,27 +559,31 @@ document.addEventListener("DOMContentLoaded", function () {
               );
             } else {
               console.error(
-                "Flashcard module or prepareEditorWithAICards function not available."
+                "generateAIFlashcards FEHLER: Flashcard-Modul oder prepareEditorWithAICards-Funktion nicht verfügbar. window.app.flashcards:",
+                window.app ? window.app.flashcards : "window.app ist nicht definiert"
               );
               this.showNotification(
                 "Fehler",
-                "Lernkarten-Funktion nicht bereit, um KI-Karten anzuzeigen.",
+                "Lernkarten-Modul ist nicht bereit. Bitte versuche es später erneut oder lade die Seite neu.",
                 "error"
               );
             }
           } else {
-            throw new Error(
-              response.error ||
-                "KI konnte keine Lernkarten generieren oder das Format war unerwartet."
-            );
+            let errorMessage = "KI konnte keine Lernkarten generieren oder das Format war unerwartet.";
+            if (response && response.error) {
+                errorMessage = response.error;
+            } else if (response && response.success && (!response.flashcards || response.flashcards.length === 0)) {
+                errorMessage = "Die KI hat keine Lernkarten für dieses Material zurückgegeben.";
+            }
+            console.error("generateAIFlashcards FEHLER:", errorMessage, "Antwort:", response);
+            throw new Error(errorMessage);
           }
         })
         .catch((error) => {
-          document.getElementById("loading-modal").classList.remove("active");
-          console.error("Error generating AI flashcards:", error);
+          console.error("generateAIFlashcards FEHLER beim API-Aufruf:", error);
           this.showNotification(
-            "Fehler bei KI-Lernkarten",
-            `Fehler: ${error.message}`,
+            "Fehler bei KI-Anfrage",
+            `Details: ${error.message || 'Unbekannter Fehler'}`,
             "error"
           );
         });
@@ -685,22 +673,22 @@ document.addEventListener("DOMContentLoaded", function () {
         regenerateSummaryBtn.addEventListener("click", () => {
           // Arrow Function behält 'this' als 'app' Objekt
           if (this.currentMaterial) {
-            delete this.currentMaterial.summary;
-            if (this.db) {
-              try {
-                const transaction = this.db.transaction(
-                  ["summaries"],
-                  "readwrite"
-                );
-                const store = transaction.objectStore("summaries");
-                store.delete(this.currentMaterial.id);
-              } catch (e) {
-                console.error(
-                  "Fehler beim Löschen der Zusammenfassung aus IDB:",
-                  e
-                );
-              }
+            delete this.currentMaterial.summary; // Summary aus dem Speicher löschen
+            // Optional: Summary auch aus IndexedDB löschen, falls dort separat gespeichert
+            if (this.db && typeof this.deleteSummaryFromIndexedDB === 'function') { // Prüfen ob DB und Funktion existieren
+                this.deleteSummaryFromIndexedDB(this.currentMaterial.id)
+                    .then(() => console.log("Zusammenfassung aus IndexedDB gelöscht."))
+                    .catch(err => console.error("Fehler beim Löschen der Zusammenfassung aus IDB:", err));
+            } else if (this.db) { // Fallback, falls deleteSummaryFromIndexedDB nicht existiert, aber summaries Store schon
+                 try {
+                    const transaction = this.db.transaction(["summaries"], "readwrite");
+                    const store = transaction.objectStore("summaries");
+                    store.delete(this.currentMaterial.id);
+                } catch (e) {
+                    console.error("Fehler beim Löschen der Zusammenfassung aus IDB (Fallback):", e);
+                }
             }
+
             if (typeof this.generateSummary === "function") {
               this.generateSummary(this.currentMaterial);
             } else {
@@ -722,7 +710,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (uploadArea && pdfUpload) {
         uploadArea.addEventListener("click", () => {
-          // Arrow Function
           pdfUpload.click();
         });
 
@@ -736,7 +723,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         uploadArea.addEventListener("drop", (e) => {
-          // Arrow Function
           e.preventDefault();
           uploadArea.classList.remove("drag-over");
           if (e.dataTransfer.files.length > 0) {
@@ -754,7 +740,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         pdfUpload.addEventListener("change", (e) => {
-          // Arrow Function
           if (e.target.files.length > 0) {
             const file = e.target.files[0];
             if (file.type === "application/pdf") {
@@ -780,7 +765,6 @@ document.addEventListener("DOMContentLoaded", function () {
       );
       if (backBtnMaterialViewer) {
         backBtnMaterialViewer.addEventListener("click", () => {
-          // Arrow Function
           this.showPage("materials");
         });
       } else {
@@ -790,16 +774,12 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       // Material tabs
-      // Stelle sicher, dass #material-viewer und .tabs .tab existieren, wenn diese Listener angehängt werden.
-      // Es ist besser, Event Delegation zu verwenden, wenn #material-viewer dynamisch geladen wird,
-      // aber für jetzt versuchen wir es direkt.
       const materialViewerTabs = document.querySelectorAll(
         "#material-viewer .tabs .tab"
       );
       if (materialViewerTabs.length > 0) {
         materialViewerTabs.forEach((tab) => {
           tab.addEventListener("click", () => {
-            // Arrow Function
             const tabId = tab.getAttribute("data-tab");
             console.log(
               `setupEventListeners: Material-Tab '${tabId}' geklickt.`
@@ -807,20 +787,24 @@ document.addEventListener("DOMContentLoaded", function () {
             if (typeof this.activateTab === "function") {
               this.activateTab(tabId);
             } else {
-              // Diese Fehlermeldung sehen wir in den Logs.
               console.error(
                 "setupEventListeners FEHLER: this.activateTab ist keine Funktion (Material-Tabs). 'this' ist:",
                 this
               );
             }
 
+            // Wenn der Summary-Tab geklickt wird und noch keine Zusammenfassung da ist UND keine gerade generiert wird
             if (
               tabId === "summary" &&
               this.currentMaterial &&
               !this.currentMaterial.summary
             ) {
-              if (typeof this.generateSummary === "function") {
+              const summaryContainer = document.getElementById("summary-text-container");
+              const isLoading = summaryContainer && summaryContainer.querySelector(".loading-spinner");
+              if (!isLoading && typeof this.generateSummary === "function") {
                 this.generateSummary(this.currentMaterial);
+              } else if (isLoading) {
+                console.log("Summary wird bereits generiert oder geladen.");
               } else {
                 console.error(
                   "setupEventListeners FEHLER: this.generateSummary ist keine Funktion (Material-Tabs, Summary generieren)."
@@ -830,20 +814,17 @@ document.addEventListener("DOMContentLoaded", function () {
           });
         });
       } else {
-        // Dieser Fall ist wahrscheinlich, wenn setupEventListeners zu früh aufgerufen wird,
-        // bevor #material-viewer im DOM ist oder Tabs enthält.
         console.warn(
-          "setupEventListeners WARNUNG: Keine Material-Tabs (#material-viewer .tabs .tab) gefunden, um Listener anzuhängen. Werden sie später geladen?"
+          "setupEventListeners WARNUNG: Keine Material-Tabs (#material-viewer .tabs .tab) gefunden."
         );
       }
 
-      // Generate summary button (im Material Header)
+      // Generate summary button (im Material Header - falls es einen gibt, sonst den im Summary Tab)
       const generateSummaryHeaderBtn = document.getElementById(
-        "generate-summary-btn"
+        "generate-summary-btn" // ID des Buttons im Header, falls vorhanden
       );
       if (generateSummaryHeaderBtn) {
         generateSummaryHeaderBtn.addEventListener("click", () => {
-          // Arrow Function
           if (this.currentMaterial) {
             if (typeof this.generateSummary === "function") {
               this.generateSummary(this.currentMaterial);
@@ -855,9 +836,7 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         });
       } else {
-        console.warn(
-          "setupEventListeners WARNUNG: Button 'generate-summary-btn' im Header nicht gefunden."
-        );
+        // console.warn("Button 'generate-summary-btn' im Header nicht gefunden."); // Kann ignoriert werden, wenn der Button im Tab ist
       }
 
       // Generate quiz button (im Material Header)
@@ -865,7 +844,6 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("generate-quiz-btn");
       if (generateQuizHeaderBtn) {
         generateQuizHeaderBtn.addEventListener("click", () => {
-          // Arrow Function
           if (this.currentMaterial) {
             this.generateQuiz(this.currentMaterial);
           }
@@ -876,11 +854,33 @@ document.addEventListener("DOMContentLoaded", function () {
         );
       }
 
+      // Generate AI Flashcards button (im Material Header)
+      const generateFlashcardsAIBtn = document.getElementById(
+        "generate-flashcards-ai-btn"
+      );
+      if (generateFlashcardsAIBtn) {
+        generateFlashcardsAIBtn.addEventListener("click", () => {
+          console.log("AI Lernkarten Button geklickt!"); // Test-Log
+          if (this.currentMaterial) {
+            this.generateAIFlashcards(this.currentMaterial);
+          } else {
+            this.showNotification(
+              "Fehler",
+              "Kein Material ausgewählt, um Lernkarten zu erstellen.",
+              "error"
+            );
+          }
+        });
+      } else {
+          console.warn(
+            "setupEventListeners WARNUNG: Button 'generate-flashcards-ai-btn' nicht gefunden."
+        );
+      }
+
       // Save notes button
       const saveNotesBtn = document.getElementById("save-notes-btn");
       if (saveNotesBtn) {
         saveNotesBtn.addEventListener("click", () => {
-          // Arrow Function
           if (this.currentMaterial) {
             const notesEditor = document.getElementById("notes-editor");
             if (notesEditor) {
@@ -908,7 +908,6 @@ document.addEventListener("DOMContentLoaded", function () {
       const markCompletedBtn = document.getElementById("mark-completed-btn");
       if (markCompletedBtn) {
         markCompletedBtn.addEventListener("click", () => {
-          // Arrow Function
           if (this.currentMaterial) {
             this.currentMaterial.completed = !this.currentMaterial.completed;
             this.saveData();
@@ -924,6 +923,7 @@ document.addEventListener("DOMContentLoaded", function () {
               } markiert!`,
               "success"
             );
+            this.updateUI(); // UI aktualisieren, um Fortschrittsbalken etc. zu ändern
           }
         });
       } else {
@@ -950,10 +950,16 @@ document.addEventListener("DOMContentLoaded", function () {
       const backToQuizzesBtn = document.getElementById("back-to-quizzes");
       if (backToQuizzesBtn) {
         backToQuizzesBtn.addEventListener("click", () => {
+          // Logik, um zur Quizliste zurückzukehren
+          this.showPage('quizzes'); // Annahme: 'quizzes' ist die ID der Seite mit der Quizliste
+                                     // und active-quiz/quiz-results werden innerhalb von showPage('quizzes') korrekt zurückgesetzt
           const quizResults = document.getElementById("quiz-results");
-          const quizList = document.getElementById("quiz-list");
+          const quizList = document.getElementById("quiz-list"); // Hauptansicht der Quizseite
+          const activeQuizView = document.getElementById("active-quiz");
+
           if (quizResults) quizResults.classList.add("hidden");
-          if (quizList) quizList.classList.remove("hidden");
+          if (activeQuizView) activeQuizView.classList.add("hidden");
+          if (quizList) quizList.classList.remove("hidden"); // Stelle sicher, dass die Liste sichtbar ist
         });
       }
       const exitQuizBtn = document.getElementById("exit-quiz");
@@ -973,7 +979,6 @@ document.addEventListener("DOMContentLoaded", function () {
       const examForm = document.getElementById("exam-form");
       if (examForm) {
         examForm.addEventListener("submit", (e) => {
-          // Arrow Function
           e.preventDefault();
           this.addExam();
         });
@@ -987,7 +992,6 @@ document.addEventListener("DOMContentLoaded", function () {
       const userMessageInput = document.getElementById("user-message");
       if (userMessageInput) {
         userMessageInput.addEventListener("keydown", (e) => {
-          // Arrow Function
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             this.sendMessage();
@@ -2943,4 +2947,22 @@ document.addEventListener("DOMContentLoaded", function () {
   };
   // Initialize the application
   window.app.init();
+
+// Stelle sicher, dass window.app existiert und füge die appCoreProperties hinzu/überschreibe sie.
+  // Dies bewahrt andere Eigenschaften, die möglicherweise von anderen Skripten (wie flashcards.js) hinzugefügt wurden.
+  if (typeof window.app === 'undefined') {
+    console.log("DOMContentLoaded (app.js): window.app nicht vorhanden, erstelle es.");
+    window.app = {};
+  }
+  Object.assign(window.app, appCoreProperties);
+
+  // Initialisiere die App
+  if (window.app && typeof window.app.init === 'function') {
+    window.app.init();
+  } else {
+    console.error("DOMContentLoaded (app.js): App-Kern konnte nicht initialisiert werden. window.app:", window.app);
+  }
+
+
+
 });

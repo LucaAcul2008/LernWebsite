@@ -2297,6 +2297,20 @@ button:disabled {
     font-size: 1rem;
 }
 
+/* NEUES STYLING FÜR DIE INFO-NACHRICHT */
+.editor-info-message {
+    background-color: #e7f3fe; /* Helles Blau */
+    color: #31708f; /* Dunkleres Blau für Text */
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+    border: 1px solid #bce8f1;
+}
+.editor-info-message i {
+    margin-right: 8px;
+}
+
 .remove-card-edit-btn {
     align-self: flex-end;
 }
