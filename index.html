@@ -552,6 +552,15 @@
             <!-- Lernkarten-Sets werden hier von JS eingefügt -->
             <p class="empty-state">Noch keine Lernkarten-Sets erstellt.</p>
           </div>
+          <button id="import-flashcard-set-btn" class="btn-secondary">
+            <i class="fas fa-upload"></i> Set importieren
+          </button>
+          <input
+            type="file"
+            id="import-flashcard-file-input"
+            accept=".json"
+            style="display: none"
+          />
         </div>
 
         <div id="flashcard-set-editor-view" class="hidden">

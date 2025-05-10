@@ -20,6 +20,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const studyView = document.getElementById("flashcard-study-view");
 
   const createSetBtn = document.getElementById("create-flashcard-set-btn");
+  const importSetBtn = document.getElementById("import-flashcard-set-btn"); // New Import Button
+  const importFileInput = document.getElementById("import-flashcard-file-input"); // New File Input
   const setsContainer = document.getElementById("flashcard-sets-container");
 
   const setNameInput = document.getElementById("flashcard-set-name");
@@ -69,10 +71,10 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!Array.isArray(flashcardSets)) flashcardSets = [];
         
         flashcardSets.forEach(set => {
-          set.id = set.id || generateUniqueId('set-'); // Ensure set has an ID
+          set.id = set.id || generateUniqueId('set-'); 
           if (set.cards && Array.isArray(set.cards)) {
             set.cards.forEach(card => {
-              if (!card.cardId) { // Assign unique ID to each card if missing
+              if (!card.cardId) { 
                 card.cardId = generateUniqueId('card-');
                 setsNeedResave = true; 
               }
@@ -84,7 +86,7 @@ document.addEventListener("DOMContentLoaded", function () {
               card.answerImage = card.answerImage ?? null;
             });
           } else {
-            set.cards = []; // Ensure cards array exists
+            set.cards = []; 
           }
         });
       } catch (e) {
@@ -94,8 +96,8 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
     if (setsNeedResave) {
-        console.log("Einige Karten hatten keine IDs, IDs wurden generiert und Sets werden neu gespeichert.");
-        saveFlashcardSets(); // Save back if IDs were generated
+        console.log("Einige Karten/Sets hatten keine IDs, IDs wurden generiert und Sets werden neu gespeichert.");
+        saveFlashcardSets(); 
     }
     renderFlashcardSets();
   }
@@ -110,7 +112,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // --- UI Rendering ---
-  function renderFlashcardSets() {
+ function renderFlashcardSets() {
     if (!setsContainer) {
         console.error("renderFlashcardSets: setsContainer nicht gefunden.");
         window.app.showNotification("UI Fehler", "Bereich zur Anzeige der Sets nicht gefunden.", "error");
@@ -118,13 +120,13 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     setsContainer.innerHTML = "";
     if (flashcardSets.length === 0) {
-      setsContainer.innerHTML = '<p class="empty-state"><i class="fas fa-layer-group"></i> Noch keine Lernkarten-Sets erstellt.</p>';
+      setsContainer.innerHTML = '<p class="empty-state"><i class="fas fa-layer-group"></i> Noch keine Lernkarten-Sets erstellt. Erstelle eines oder importiere ein Set.</p>';
       return;
     }
     flashcardSets.forEach((set) => {
       const setCard = document.createElement("div");
       setCard.className = "material-card flashcard-set-card";
-      setCard.dataset.setId = set.id; // Store set ID for easier access if needed
+      setCard.dataset.setId = set.id; 
       setCard.innerHTML = `
         <div class="material-icon"><i class="fas fa-layer-group"></i></div>
         <div class="material-info">
@@ -132,13 +134,18 @@ document.addEventListener("DOMContentLoaded", function () {
             <p>${set.cards ? set.cards.length : 0} Karte(n)</p>
         </div>
         <div class="flashcard-set-actions">
-            <button class="btn-primary start-study-btn" title="Lernsession starten"><i class="fas fa-play"></i> Lernen</button>
+            <button class="btn-primary start-study-btn" title="Lernsession starten (SRS)"><i class="fas fa-graduation-cap"></i> SRS-Lernen</button>
+            <button class="btn-secondary start-cram-btn" title="Alle Karten lernen (Pauken)"><i class="fas fa-bolt"></i> Pauken</button> {/* New Cram Button */}
             <button class="btn-secondary edit-set-btn" title="Set bearbeiten"><i class="fas fa-edit"></i> Bearbeiten</button>
+            <button class="btn-info export-set-btn" title="Set exportieren"><i class="fas fa-download"></i> Exportieren</button>
+            <button class="btn-secondary duplicate-set-btn" title="Set duplizieren"><i class="fas fa-copy"></i> Duplizieren</button> 
             <button class="btn-danger delete-set-btn" title="Set löschen"><i class="fas fa-trash"></i> Löschen</button>
         </div>`;
-      // Event listeners are more robust if attached to specific buttons with data attributes
-      setCard.querySelector(".start-study-btn").addEventListener("click", (e) => { e.stopPropagation(); startStudySession(set.id); });
+      setCard.querySelector(".start-study-btn").addEventListener("click", (e) => { e.stopPropagation(); startStudySession(set.id, false); }); // SRS mode
+      setCard.querySelector(".start-cram-btn").addEventListener("click", (e) => { e.stopPropagation(); startStudySession(set.id, true); }); // Cram mode
       setCard.querySelector(".edit-set-btn").addEventListener("click", (e) => { e.stopPropagation(); openSetEditor(set.id); });
+      setCard.querySelector(".export-set-btn").addEventListener("click", (e) => { e.stopPropagation(); exportSet(set.id); });
+      setCard.querySelector(".duplicate-set-btn").addEventListener("click", (e) => { e.stopPropagation(); duplicateSet(set.id); });
       setCard.querySelector(".delete-set-btn").addEventListener("click", (e) => { e.stopPropagation(); deleteFlashcardSet(set.id); });
       setsContainer.appendChild(setCard);
     });
@@ -157,19 +164,18 @@ document.addEventListener("DOMContentLoaded", function () {
     cardsEditorContainer.innerHTML = "";
     editorTitleEl.textContent = editingSet ? "Lernkarten-Set bearbeiten" : "Lernkarten-Set erstellen";
     
-    // Clear any previous AI info messages
     const existingInfo = editorView ? editorView.querySelector(".editor-info-message") : null;
     if (existingInfo) existingInfo.remove();
 
     if (editingSet && editingSet.cards) {
-      editingSet.cards.forEach((card) => addCardEditFields(card)); // Pass the whole card object
+      editingSet.cards.forEach((card) => addCardEditFields(card)); 
     } else {
       addCardEditFields(); 
     }
     showView("editor");
   }
 
-  function addCardEditFields(cardData = {}) { // Expects a card object or empty for new
+  function addCardEditFields(cardData = {}) { 
     if (!cardsEditorContainer) {
         console.error("addCardEditFields: cardsEditorContainer ist nicht verfügbar.");
         window.app.showNotification("UI Fehler", "Kann keine neue Karte zum Editor hinzufügen.", "error");
@@ -178,12 +184,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const { 
         question = "", answer = "", 
         questionImage = null, answerImage = null, 
-        cardId = null // Keep existing cardId if passed
+        cardId = null 
     } = cardData;
 
     const cardFieldDiv = document.createElement("div");
     cardFieldDiv.className = "flashcard-edit-item";
-    if (cardId) cardFieldDiv.dataset.cardId = cardId; // Store cardId on the element for saving
+    if (cardId) cardFieldDiv.dataset.cardId = cardId; 
 
     const uniqueHtmlId = generateUniqueId('field-');
     cardFieldDiv.innerHTML = `
@@ -280,7 +286,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const existingCardId = cardEl.dataset.cardId;
         let srsData = { interval: 0, repetitions: 0, easeFactor: 2.5, dueDate: new Date().toISOString() };
 
-        if (editingSet && existingCardId) { // If editing an existing card, try to preserve its SRS data
+        if (editingSet && existingCardId) { 
             const originalCard = editingSet.cards.find(c => c.cardId === existingCardId);
             if (originalCard) {
                 srsData = { 
@@ -292,7 +298,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
         cards.push({
-          cardId: existingCardId || generateUniqueId('card-'), // Use existing or generate new ID
+          cardId: existingCardId || generateUniqueId('card-'), 
           question: questionText, 
           answer: answerText, 
           questionImage: questionImage, 
@@ -341,8 +347,148 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  // --- Export & Import Set Functions ---
+  function exportSet(setId) {
+    const setToExport = flashcardSets.find(set => set.id === setId);
+    if (!setToExport) {
+      console.error("Export Fehler: Set mit ID nicht gefunden:", setId);
+      window.app.showNotification("Export Fehler", "Das ausgewählte Set konnte nicht gefunden werden.", "error");
+      return;
+    }
+    const filename = `${setToExport.name.replace(/[^a-z0-9_.\-\s]/gi, '_').replace(/\s+/g, '_')}_flashcards.json`;
+    const jsonString = JSON.stringify(setToExport, null, 2); 
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    window.app.showNotification("Exportiert", `Set "${escapeHtml(setToExport.name)}" wurde als JSON exportiert.`, "success");
+  }
+
+  function handleImportFileSelect() {
+    if (importFileInput) {
+      importFileInput.click(); // Trigger hidden file input
+    } else {
+      console.error("Import Fehler: Datei-Input Element nicht gefunden.");
+      window.app.showNotification("Import Fehler", "Datei-Auswahl konnte nicht geöffnet werden.", "error");
+    }
+  }
+
+  function processImportedFile(event) {
+    const file = event.target.files[0];
+    if (!file) {
+      window.app.showNotification("Import abgebrochen", "Keine Datei für den Import ausgewählt.", "info");
+      return;
+    }
+    if (file.type !== "application/json") {
+      window.app.showNotification("Import Fehler", "Ungültiger Dateityp. Bitte wähle eine .json Datei.", "error");
+      event.target.value = null; // Reset file input
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const importedData = JSON.parse(e.target.result);
+        addImportedSet(importedData);
+      } catch (error) {
+        console.error("Import Fehler: JSON-Parsing fehlgeschlagen.", error);
+        window.app.showNotification("Import Fehler", "Die Datei konnte nicht als gültiges Set gelesen werden.", "error");
+      } finally {
+        event.target.value = null; // Reset file input for next import
+      }
+    };
+    reader.onerror = function() {
+        console.error("Import Fehler: Datei konnte nicht gelesen werden.");
+        window.app.showNotification("Import Fehler", "Die ausgewählte Datei konnte nicht gelesen werden.", "error");
+        event.target.value = null; // Reset file input
+    };
+    reader.readAsText(file);
+  }
+
+   function addImportedSet(setData) {
+    // Basic validation of the imported set structure
+    if (typeof setData !== 'object' || setData === null || !setData.name || !Array.isArray(setData.cards)) {
+      window.app.showNotification("Import Fehler", "Ungültige Set-Struktur in der importierten Datei.", "error");
+      return;
+    }
+
+    const newSet = {
+      id: generateUniqueId('set-'), 
+      name: escapeHtml(setData.name) + " (Importiert)", 
+      cards: []
+    };
+
+    setData.cards.forEach(card => {
+      if (typeof card === 'object' && card !== null && (card.question || card.answer || card.questionImage || card.answerImage)) { // Check if card has any content
+        newSet.cards.push({
+          cardId: generateUniqueId('card-'), 
+          question: card.question || "",
+          answer: card.answer || "",
+          questionImage: card.questionImage || null,
+          answerImage: card.answerImage || null,
+          interval: card.interval ?? 0,
+          repetitions: card.repetitions ?? 0,
+          easeFactor: card.easeFactor ?? 2.5,
+          dueDate: card.dueDate || new Date().toISOString() 
+        });
+      } else {
+        console.warn("Ungültige Karte im importierten Set übersprungen:", card);
+      }
+    });
+
+    if (newSet.cards.length === 0 && setData.cards.length > 0) {
+        window.app.showNotification("Import Warnung", "Das importierte Set enthielt keine gültigen Karten.", "warning");
+    } else if (newSet.cards.length === 0) {
+        window.app.showNotification("Import Fehler", "Das importierte Set ist leer oder ungültig.", "error");
+        return;
+    }
+
+    flashcardSets.push(newSet);
+    saveFlashcardSets();
+    renderFlashcardSets();
+    window.app.showNotification("Import erfolgreich", `Set "${newSet.name}" wurde importiert.`, "success");
+  }
+
+  // --- Duplicate Set Function ---
+  function duplicateSet(originalSetId) {
+    const originalSet = flashcardSets.find(set => set.id === originalSetId);
+    if (!originalSet) {
+      console.error("Duplizieren Fehler: Original-Set mit ID nicht gefunden:", originalSetId);
+      window.app.showNotification("Duplizieren Fehler", "Das Original-Set konnte nicht gefunden werden.", "error");
+      return;
+    }
+
+    // Create a deep copy of the set and its cards
+    const duplicatedSet = JSON.parse(JSON.stringify(originalSet));
+
+    // Assign new unique ID to the duplicated set
+    duplicatedSet.id = generateUniqueId('set-');
+    duplicatedSet.name = `${originalSet.name} (Kopie)`;
+
+    // Assign new unique cardIds and reset SRS data for all cards in the duplicated set
+    if (duplicatedSet.cards && Array.isArray(duplicatedSet.cards)) {
+      duplicatedSet.cards.forEach(card => {
+        card.cardId = generateUniqueId('card-');
+        card.interval = 0;
+        card.repetitions = 0;
+        card.easeFactor = 2.5;
+        card.dueDate = new Date().toISOString();
+      });
+    }
+
+    flashcardSets.push(duplicatedSet);
+    saveFlashcardSets();
+    renderFlashcardSets();
+    window.app.showNotification("Dupliziert", `Set "${escapeHtml(duplicatedSet.name)}" wurde erfolgreich dupliziert.`, "success");
+  }
+
   // --- Study Session Logic ---
-  function startStudySession(setId) {
+   function startStudySession(setId, isCramMode = false) {
     const setForStudy = flashcardSets.find((set) => set.id === setId);
     if (!setForStudy || !setForStudy.cards || setForStudy.cards.length === 0) {
       window.app.showNotification("Info", "Dieses Set ist leer oder kann nicht zum Lernen geöffnet werden.", "info");
@@ -350,25 +496,40 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    const today = new Date(); 
-    today.setHours(0, 0, 0, 0);
-    
-    const dueCards = setForStudy.cards.filter((card) => {
-      if (!card.dueDate) return true; 
-      const dueDate = new Date(card.dueDate); 
-      dueDate.setHours(0, 0, 0, 0);
-      return dueDate <= today;
-    });
+    let cardsForSession;
+    let sessionTypeInfo;
 
-    if (dueCards.length === 0) {
-      window.app.showNotification("Info", `Keine Karten in "${escapeHtml(setForStudy.name)}" sind heute fällig. Gut gemacht!`, "info");
+    if (isCramMode) {
+      cardsForSession = [...setForStudy.cards]; // All cards for cram mode
+      sessionTypeInfo = `Pauken: ${escapeHtml(setForStudy.name)} (${cardsForSession.length} Karten)`;
+      if (srsControlsContainer) srsControlsContainer.classList.add("hidden"); // Optionally hide SRS in cram mode initially
+      if (flipCardBtn) flipCardBtn.classList.remove("hidden");
+    } else {
+      const today = new Date(); 
+      today.setHours(0, 0, 0, 0);
+      cardsForSession = setForStudy.cards.filter((card) => {
+        if (!card.dueDate) return true; 
+        const dueDate = new Date(card.dueDate); 
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate <= today;
+      });
+      sessionTypeInfo = `Lernen (SRS): ${escapeHtml(setForStudy.name)} (${cardsForSession.length} fällige Karten)`;
+    }
+
+    if (cardsForSession.length === 0) {
+      if (isCramMode) {
+        window.app.showNotification("Info", `Das Set "${escapeHtml(setForStudy.name)}" enthält keine Karten zum Pauken.`, "info");
+      } else {
+        window.app.showNotification("Info", `Keine Karten in "${escapeHtml(setForStudy.name)}" sind heute fällig. Gut gemacht!`, "info");
+      }
       showView("sets"); 
       return;
     }
 
     currentSet = { 
         ...setForStudy, 
-        shuffledCards: [...dueCards].sort(() => Math.random() - 0.5) 
+        shuffledCards: [...cardsForSession].sort(() => Math.random() - 0.5),
+        isCramming: isCramMode // Store cram mode state
     };
     currentCardIndex = 0;
 
@@ -378,7 +539,7 @@ document.addEventListener("DOMContentLoaded", function () {
         showView("sets");
         return;
     }
-    studySetNameEl.textContent = `Lernen: ${escapeHtml(currentSet.name)} (${currentSet.shuffledCards.length} fällige Karten)`;
+    studySetNameEl.textContent = sessionTypeInfo;
     
     displayCurrentCard();
     showView("study");
@@ -390,6 +551,11 @@ document.addEventListener("DOMContentLoaded", function () {
         if (cardQuestionEl) cardQuestionEl.innerHTML = '<p class="empty-state">Keine Karten mehr in dieser Lernsession.</p>';
         if (cardAnswerEl) cardAnswerEl.innerHTML = "";
         if (flashcardEl) flashcardEl.classList.remove("is-flipped");
+         // SRS controls are hidden by default, shown on flip if not cramming without SRS
+    if (srsControlsContainer) srsControlsContainer.classList.add("hidden"); 
+    if (flipCardBtn) { flipCardBtn.classList.remove("hidden"); flipCardBtn.disabled = false; }
+    if (prevCardBtn) prevCardBtn.disabled = currentCardIndex === 0;
+    if (nextCardBtn) nextCardBtn.disabled = currentCardIndex === currentSet.shuffledCards.length - 1;
         if (prevCardBtn) prevCardBtn.disabled = true;
         if (nextCardBtn) nextCardBtn.disabled = true;
         if (flipCardBtn) flipCardBtn.disabled = true;
@@ -402,7 +568,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!card) {
         console.error("displayCurrentCard: Aktuelle Karte ist undefined bei Index", currentCardIndex);
         window.app.showNotification("Fehler", "Konnte die nächste Karte nicht laden.", "error");
-        showStudySummary(); // Attempt to gracefully end session
+        showStudySummary(); 
         return;
     }
     
@@ -425,11 +591,14 @@ document.addEventListener("DOMContentLoaded", function () {
     if (nextCardBtn) nextCardBtn.disabled = currentCardIndex === currentSet.shuffledCards.length - 1;
   }
 
-  function flipCurrentCard() {
+ function flipCurrentCard() {
     if (!flashcardEl) { console.error("flipCurrentCard: flashcardEl nicht gefunden."); return; }
     flashcardEl.classList.toggle("is-flipped");
     if (flashcardEl.classList.contains("is-flipped")) {
-      if (srsControlsContainer) srsControlsContainer.classList.remove("hidden");
+      // Only show SRS controls if not in cram mode OR if you decide SRS is still useful in cram mode
+      if (srsControlsContainer && (!currentSet || !currentSet.isCramming)) { // Example: Hide SRS controls if cramming
+          srsControlsContainer.classList.remove("hidden");
+      }
       if (flipCardBtn) flipCardBtn.classList.add("hidden");
     } else {
       if (srsControlsContainer) srsControlsContainer.classList.add("hidden");
@@ -454,7 +623,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function showStudySummary() {
-    if (currentSet && window.app && window.app.showNotification) { // Check currentSet before accessing its name
+    if (currentSet && window.app && window.app.showNotification) { 
       window.app.showNotification("Session beendet", `Du hast die fälligen Karten für "${escapeHtml(currentSet.name)}" durchgearbeitet.`, "info");
     } else if (!currentSet && window.app && window.app.showNotification) {
         window.app.showNotification("Session beendet", "Lernsession abgeschlossen.", "info");
@@ -507,7 +676,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!cardFromShuffledList.cardId) {
         console.error("handleSRSRating: Karte in Lernsession hat keine cardId!", cardFromShuffledList);
         window.app.showNotification("SRS Fehler", "Kartenidentifikation fehlgeschlagen.", "error");
-        showNextCard(); // Try to move on
+        showNextCard(); 
         return;
     }
 
@@ -520,8 +689,6 @@ document.addEventListener("DOMContentLoaded", function () {
         } else { 
             console.warn(`SRS: Originalkarte mit ID ${cardFromShuffledList.cardId} im Set ${originalSetData.name} (ID: ${originalSetData.id}) nicht gefunden. SRS-Daten werden nicht dauerhaft gespeichert.`);
             window.app.showNotification("Warnung", "SRS-Fortschritt für diese Karte konnte nicht im Hauptset gespeichert werden.", "warning");
-            // Optionally, update the card in shuffledCards if you want temporary effect for the session, but it won't persist.
-            // updateSRSData(cardFromShuffledList, quality); 
         }
     } else {
         console.warn("SRS: Original-Set nicht gefunden für Update. Set-ID:", currentSet.id);
@@ -534,8 +701,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // --- View Management ---
   function showView(viewName) {
     const views = { sets: setsView, editor: editorView, study: studyView };
-    let foundActiveView = false;
-
     for (const key in views) {
         if (views[key]) {
             views[key].classList.add("hidden");
@@ -546,12 +711,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (views[viewName]) {
         views[viewName].classList.remove("hidden");
-        foundActiveView = true;
     } else {
         console.error(`showView: Unbekannter Ansichtsname '${viewName}' oder Ansichts-Element nicht gefunden.`);
         window.app.showNotification("UI Fehler", `Ansicht '${viewName}' konnte nicht angezeigt werden.`, "error");
-        // Fallback to sets view if requested view is invalid and setsView exists
-        if (setsView) setsView.classList.remove("hidden");
+        if (setsView) setsView.classList.remove("hidden"); // Fallback
     }
   }
   
@@ -566,9 +729,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     setNameInput.value = `KI-Karten für: ${escapeHtml(sourceMaterialName)}`;
-    cardsEditorContainer.innerHTML = ""; // Clear previous cards
+    cardsEditorContainer.innerHTML = ""; 
     
-    // Remove any existing info messages then add new one
     const existingInfoMessages = editorView.querySelectorAll(".editor-info-message"); 
     existingInfoMessages.forEach(msg => msg.remove());
 
@@ -576,7 +738,6 @@ document.addEventListener("DOMContentLoaded", function () {
     editorInfoMessage.className = "editor-info-message"; 
     editorInfoMessage.innerHTML = '<i class="fas fa-info-circle"></i> Dies sind KI-generierte Lernkarten. Bitte überprüfe und bearbeite sie bei Bedarf, bevor du sie speicherst.';
     
-    // Insert after title, or at top of editor view as fallback
     if (editorTitleEl.nextSibling) {
         editorTitleEl.parentNode.insertBefore(editorInfoMessage, editorTitleEl.nextSibling);
     } else {
@@ -586,10 +747,9 @@ document.addEventListener("DOMContentLoaded", function () {
     if (cardsData && Array.isArray(cardsData) && cardsData.length > 0) {
       cardsData.forEach(card => { 
         if (card && typeof card.question === "string" && typeof card.answer === "string") {
-          addCardEditFields({ // Pass as object for addCardEditFields
+          addCardEditFields({ 
               question: card.question, 
               answer: card.answer, 
-              // AI cards are text-only by default from this function
               questionImage: null, 
               answerImage: null 
             }); 
@@ -598,7 +758,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       });
     } else { 
-      addCardEditFields(); // Add one empty card for manual input
+      addCardEditFields(); 
       window.app.showNotification("Info", "KI konnte keine Karten generieren oder lieferte ein leeres Ergebnis. Bitte manuell erstellen.", "info"); 
     }
     
@@ -607,11 +767,18 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // --- Event Listeners Setup ---
-  // Check for button existence before adding listeners
   if (createSetBtn) createSetBtn.addEventListener("click", () => openSetEditor());
   else console.warn("Event Listener Setup: createSetBtn nicht gefunden.");
 
-  if (addCardToSetBtn) addCardToSetBtn.addEventListener("click", () => addCardEditFields()); // No card data for brand new card
+  if (importSetBtn && importFileInput) { // Setup for import
+    importSetBtn.addEventListener("click", handleImportFileSelect);
+    importFileInput.addEventListener("change", processImportedFile);
+  } else {
+    if (!importSetBtn) console.warn("Event Listener Setup: importSetBtn nicht gefunden.");
+    if (!importFileInput) console.warn("Event Listener Setup: importFileInput nicht gefunden.");
+  }
+
+  if (addCardToSetBtn) addCardToSetBtn.addEventListener("click", () => addCardEditFields()); 
   else console.warn("Event Listener Setup: addCardToSetBtn nicht gefunden.");
 
   if (saveSetBtn) saveSetBtn.addEventListener("click", saveCurrentSet);
@@ -635,7 +802,7 @@ document.addEventListener("DOMContentLoaded", function () {
   srsButtons.forEach((button) => {
     button.addEventListener("click", function () {
       const quality = parseInt(this.dataset.quality, 10);
-      if (!isNaN(quality) && quality >= 0 && quality <= 5) { // Validate quality range
+      if (!isNaN(quality) && quality >= 0 && quality <= 5) { 
         handleSRSRating(quality);
       } else {
         console.error("Ungültige SRS-Qualität:", this.dataset.quality);
@@ -648,16 +815,17 @@ document.addEventListener("DOMContentLoaded", function () {
   loadFlashcardSets(); 
   showView("sets");   
 
-  if (window.app) {
+    if (window.app) {
     window.app.flashcards = {
       prepareEditorWithAICards: prepareEditorWithAICards,
       openSetEditor: openSetEditor,
-      startStudySession: startStudySession,
+      startStudySession: startStudySession, // This now handles both modes
       loadSets: loadFlashcardSets, 
+      exportSet: exportSet, 
+      duplicateSet: duplicateSet,
     };
-    console.log("Flashcards module (improved version) initialized and attached to window.app.");
+    console.log("Flashcards module (with Cram Mode) initialized and attached to window.app.");
   } else {
-    // This should have been caught at the top, but as a safeguard:
     console.error("Flashcards: window.app nicht definiert nach Initialisierung. Flashcard-Methoden können nicht angehängt werden.");
   }
 });
