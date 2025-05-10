@@ -2361,12 +2361,69 @@ button:disabled {
     backface-visibility: hidden; /* Hide the back of the card when not flipped */
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     padding: 20px;
     text-align: center;
     font-size: 1.5rem;
     border-radius: 8px;
     background-color: #fff;
+     overflow-y: auto;
+}
+.flashcard-front p, .flashcard-back p {
+    margin-bottom: var(--spacing-sm);
+}
+
+.flashcard-front h1, .flashcard-back h1,
+.flashcard-front h2, .flashcard-back h2,
+.flashcard-front h3, .flashcard-back h3 {
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    line-height: 1.3;
+}
+.flashcard-front h1, .flashcard-back h1 { font-size: 1.4em; }
+.flashcard-front h2, .flashcard-back h2 { font-size: 1.2em; }
+.flashcard-front h3, .flashcard-back h3 { font-size: 1.1em; }
+
+
+.flashcard-front ul, .flashcard-back ul,
+.flashcard-front ol, .flashcard-back ol {
+    margin-left: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    text-align: left; /* Ensure lists are left-aligned */
+}
+
+.flashcard-front li, .flashcard-back li {
+    margin-bottom: var(--spacing-xs);
+}
+
+.flashcard-front code, .flashcard-back code {
+    background-color: var(--code-bg-light, #f0f0f0);
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+}
+
+.flashcard-front pre, .flashcard-back pre {
+    background-color: var(--code-bg-light, #f0f0f0);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+    overflow-x: auto;
+    margin-bottom: var(--spacing-md);
+}
+
+.flashcard-front pre code, .flashcard-back pre code {
+    background-color: transparent;
+    padding: 0;
+}
+
+.flashcard-front blockquote, .flashcard-back blockquote {
+    border-left: 3px solid var(--primary-color-light);
+    padding-left: var(--spacing-md);
+    margin-left: 0;
+    margin-bottom: var(--spacing-md);
+    font-style: italic;
+    color: var(--text-secondary);
 }
 
 .flashcard-back {
@@ -2422,4 +2479,256 @@ button:disabled {
 }
 .editor-info-message i {
     margin-right: 8px;
+}
+
+/* Materials Page - Actions Bar & Layout */
+.materials-actions-bar {
+    display: flex;
+    justify-content: flex-end; /* Align button to the right */
+    margin-bottom: var(--spacing-lg);
+}
+
+.materials-layout {
+    display: flex;
+    gap: var(--spacing-lg);
+}
+
+.folders-sidebar {
+    flex: 0 0 220px; /* Fixed width for folder sidebar */
+    background-color: var(--bg-light); /* Light background for the sidebar itself */
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    height: fit-content; /* Adjust height to content */
+    box-shadow: var(--shadow-soft);
+}
+
+.folders-sidebar h3 {
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.folders-list, .folders-list-dynamic {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.folder-item {
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: var(--spacing-xs);
+    transition: background-color 0.2s, color 0.2s;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.folder-item:hover {
+    background-color: var(--hover-bg-color);
+    color: var(--primary-color);
+}
+
+.folder-item.active {
+    background-color: var(--primary-color-light);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.materials-main-content {
+    flex: 1; /* Takes remaining space */
+}
+
+
+/* Modal Styles (ensure these are generic enough or adjust if you have specific modal styles) */
+.modal {
+/* ... your existing modal styles ... */
+    z-index: 1001; /* Ensure it's above sidebar if sidebar has z-index 100 */
+}
+.modal.active {
+/* ... your existing active modal styles ... */
+}
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 1000; /* Below modal content, above page content */
+}
+
+.modal-content {
+/* ... your existing modal content styles ... */
+  z-index: 1001; /* Above overlay */
+}
+
+.modal-header {
+/* ... your existing modal header styles ... */
+}
+
+.modal-close { /* If you use .modal-close specifically */
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+/* ... your existing modal body styles ... */
+}
+
+/* Ensure form elements in modal are styled if not covered by global styles */
+#create-folder-modal .form-group {
+    margin-bottom: var(--spacing-lg);
+}
+#create-folder-modal label {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+    font-weight: 500;
+}
+#create-folder-modal input[type="text"] {
+    width: 100%;
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-size: 1rem;
+}
+
+
+/* Ensure empty state in folders container is styled */
+#folders-container .empty-state {
+    font-style: italic;
+    color: var(--text-muted);
+    padding: var(--spacing-md) 0;
+    text-align: left; /* Align to left if in sidebar */
+}
+
+
+/* Responsive adjustments for material layout */
+@media (max-width: 768px) {
+    .materials-layout {
+        flex-direction: column;
+    }
+    .folders-sidebar {
+        flex: 0 0 auto; /* Allow it to take auto width */
+        width: 100%;
+        margin-bottom: var(--spacing-lg);
+    }
+}
+
+/* Flashcard Editor Image Uploads */
+.flashcard-edit-item {
+    /* ... existing styles ... */
+    display: flex;
+    flex-wrap: wrap; /* Allow sides to wrap on smaller screens if needed */
+    gap: var(--spacing-md);
+    align-items: flex-start; /* Align items at the top */
+}
+
+.flashcard-edit-side {
+    flex: 1; /* Each side takes up half the space */
+    min-width: 250px; /* Minimum width before wrapping */
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.flashcard-edit-side label {
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: var(--spacing-sm); /* Space above label */
+}
+
+.flashcard-edit-image {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--bg-light);
+    font-size: 0.9rem;
+}
+
+.flashcard-edit-image-preview {
+    max-width: 100%; /* Make preview responsive */
+    max-height: 150px;
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--border-radius-sm);
+    margin-top: var(--spacing-sm);
+    object-fit: contain; /* Ensure image aspect ratio is maintained */
+}
+
+.flashcard-edit-item .remove-image-btn {
+    align-self: flex-start; /* Align button to the start of its container */
+    margin-top: var(--spacing-xs);
+    font-size: 0.85rem;
+}
+
+
+/* Flashcard Display Image */
+.flashcard-image {
+    max-width: 100%;
+    max-height: 200px; /* Adjust as needed for display */
+    display: block; /* Remove extra space below image */
+    margin: 0 auto var(--spacing-md) auto; /* Center image and add margin below */
+    border-radius: var(--border-radius-sm);
+    object-fit: contain;
+}
+
+.flashcard-front, .flashcard-back {
+    /* ... existing styles ... */
+    display: flex; /* Use flexbox for better control */
+    flex-direction: column; /* Stack image and text vertically */
+    justify-content: center; /* Center content vertically */
+    align-items: center; /* Center content horizontally */
+}
+
+/* Flashcard SRS Controls */
+.flashcard-srs-controls {
+    display: flex;
+    flex-direction: column; /* Stack text and buttons vertically */
+    align-items: center; /* Center items */
+    gap: var(--spacing-sm); /* Space between text and button group, and between buttons */
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-color-light);
+}
+
+.flashcard-srs-controls p {
+    margin-bottom: var(--spacing-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.flashcard-srs-controls .btn-srs {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.9rem;
+    min-width: 100px; /* Ensure buttons have a decent width */
+    margin: 0 var(--spacing-xs); /* Small margin between buttons if they wrap */
+}
+
+/* Specific SRS button colors - you can adjust these */
+.flashcard-srs-controls .btn-danger { background-color: var(--danger-color); border-color: var(--danger-color); color: #fff; }
+.flashcard-srs-controls .btn-danger:hover { background-color: var(--danger-color-dark); border-color: var(--danger-color-dark); }
+
+.flashcard-srs-controls .btn-warning { background-color: var(--warning-color); border-color: var(--warning-color); color: #fff; }
+.flashcard-srs-controls .btn-warning:hover { background-color: var(--warning-color-dark); border-color: var(--warning-color-dark); }
+
+.flashcard-srs-controls .btn-info { background-color: var(--info-color); border-color: var(--info-color); color: #fff; }
+.flashcard-srs-controls .btn-info:hover { background-color: var(--info-color-dark); border-color: var(--info-color-dark); }
+
+.flashcard-srs-controls .btn-success { background-color: var(--success-color); border-color: var(--success-color); color: #fff; }
+.flashcard-srs-controls .btn-success:hover { background-color: var(--success-color-dark); border-color: var(--success-color-dark); }
+
+
+/* Ensure hidden class works */
+.hidden {
+    display: none !important;
 }

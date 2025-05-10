@@ -7,6 +7,10 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error("PDF Fix [V2]: window.app ist nicht initialisiert!");
       return;
     }
+     if (window.app.processPdfFile) {
+        const originalProcessPdfFile = window.app.processPdfFile;
+        window.app.processPdfFile = async function(file) { /* ... patched logic ... */ };
+    }
     if (!window.pdfjsLib) {
       console.error("PDF Fix [V2]: pdfjsLib ist nicht geladen!");
       return;
@@ -182,65 +186,84 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     };
 
-    if (window.app.processPdfFile) { // Geändert von handleFileUpload
-        const originalProcessPdfFile = window.app.processPdfFile;
-        window.app.processPdfFile = async function(file) { // Parameter ist 'file'
-            console.log("PDF Fix [V2]: processPdfFile aufgerufen.");
-            // const file = event.target.files[0]; // Nicht mehr nötig, 'file' wird direkt übergeben
+     if (window.app.processPdfFile) {
+            const originalProcessPdfFile = window.app.processPdfFile;
+            window.app.processPdfFile = async function(file) {
+                console.log("processPdfFile (PATCHED by pdf-fix.js) called with file:", file.name);
+                document.getElementById("loading-modal").classList.add("active");
+                document.getElementById("loading-message").textContent = "Verarbeite PDF (Patch)...";
 
-            if (file && file.type === "application/pdf") {
-                const materialId = Date.now().toString(); // ID hier generieren
-                const materialName = file.name.replace(/\.pdf$/i, ""); // Name hier generieren
+                const materialId = Date.now().toString();
+                const materialName = file.name.replace(/\.pdf$/i, "");
+                let extractedContentForAI = "";
 
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const fileData = e.target.result; // ArrayBuffer
-                    try {
-                        // PDF-Inhalt für die AI extrahieren (optional)
-                        let extractedContentForAI = "";
-                        if (window.app.extractPdfContent) {
-                            try {
-                                extractedContentForAI = await window.app.extractPdfContent(fileData);
-                            } catch (extractError) {
-                                console.warn("PDF Fix [V2]: Konnte PDF-Inhalt für AI nicht extrahieren:", extractError);
+                try {
+                    const fileData = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.onerror = (err) => reject(err);
+                        reader.readAsArrayBuffer(file);
+                    });
+
+                    if (this.extractPdfContent) {
+                        try {
+                            extractedContentForAI = await this.extractPdfContent(fileData);
+                            if (!extractedContentForAI || extractedContentForAI.trim() === "") {
+                                console.warn("pdf-fix.js: PDF-Inhaltsextraktion ergab keinen Text.");
+                                // Allow material creation even without text, AI features might fail later
                             }
+                        } catch (extractError) {
+                            console.error("pdf-fix.js: Fehler bei PDF-Inhaltsextraktion:", extractError);
+                            this.showNotification("Fehler bei PDF-Verarbeitung (Patch)", `PDF-Inhalt konnte nicht extrahiert werden: ${extractError.message}`, "error");
+                            // Decide if you want to return or throw
+                            // For now, let's allow material creation but content will be empty
                         }
-
-                        await window.app.savePdfToDB(materialId, fileData); // Benutze die neue DB Funktion
-
-                        const newMaterial = {
-                            id: materialId,
-                            name: materialName,
-                            type: 'pdf',
-                            fileName: file.name, // ADDED
-                            dateAdded: new Date().toISOString(), // ADDED
-                            content: extractedContentForAI,
-                            summary: '',
-                            notes: '',
-                            completed: false,
-                            quizAttempts: [],
-                            fileAvailable: true // ADDED
-                            // fileData nicht hier speichern, wird bei Bedarf geladen
-                        };
-                        window.app.materials.push(newMaterial);
-                        window.app.saveData();
-                        window.app.updateMaterialsList();
-                        window.app.showNotification("Erfolg", `${materialName} erfolgreich hochgeladen.`, "success");
-                    } catch (error) {
-                        console.error("PDF Fix [V2]: Fehler beim Speichern des PDFs nach Upload:", error);
-                        window.app.showNotification("Fehler", "PDF konnte nicht gespeichert werden.", "error");
+                    } else {
+                        console.error("pdf-fix.js: this.extractPdfContent ist keine Funktion.");
+                        throw new Error("Funktion zur PDF-Inhaltsextraktion nicht verfügbar (Patch).");
                     }
-                };
-                reader.readAsArrayBuffer(file);
-                // event.target.value = ""; // Input zurücksetzen, falls 'event' hier verfügbar wäre
-            } else {
-                window.app.showNotification("Fehler", "Bitte eine PDF-Datei auswählen.", "error");
-            }
-        };
-        console.log("PDF Fix [V2]: app.processPdfFile wurde gepatcht.");
-    } else {
-        console.warn("PDF Fix [V2]: app.processPdfFile konnte nicht gefunden und gepatcht werden.");
-    }
+
+                    if (typeof this.savePdfToDB === "function") {
+                        await this.savePdfToDB(materialId, fileData);
+                        console.log("pdf-fix.js: PDF in DB gespeichert.");
+                    } else {
+                        console.error("pdf-fix.js: savePdfToDB ist keine Funktion.");
+                        throw new Error("PDF Speicherfunktion (DB) nicht verfügbar (Patch).");
+                    }
+
+                    const activeFolderId = typeof this.getActiveFolderId === 'function' ? this.getActiveFolderId() : null; // MODIFIED: Get active folder ID
+
+                    const newMaterial = {
+                        id: materialId,
+                        name: materialName,
+                        type: "pdf",
+                        fileName: file.name,
+                        dateAdded: new Date().toISOString(),
+                        content: extractedContentForAI,
+                        summary: "",
+                        notes: "",
+                        completed: false,
+                        quizAttempts: [],
+                        fileAvailable: true,
+                        folderId: activeFolderId, // MODIFIED: Assign folderId
+                    };
+
+                    this.materials.push(newMaterial);
+                    this.saveData();
+                    this.updateUI();
+                    this.showNotification("Erfolg (Patch)", `${materialName} erfolgreich hochgeladen.`, "success");
+
+                } catch (error) {
+                    console.error("pdf-fix.js: Fehler in processPdfFile (Patch):", error);
+                    this.showNotification("Fehler (Patch)", `PDF konnte nicht verarbeitet werden: ${error.message}`, "error");
+                } finally {
+                    document.getElementById("loading-modal").classList.remove("active");
+                }
+            };
+            console.log("pdf-fix.js: window.app.processPdfFile wurde erfolgreich gepatcht.");
+        } else {
+            console.error("pdf-fix.js: window.app.processPdfFile nicht gefunden zum Patchen.");
+        }
 
 
     console.log("PDF Fix [V2]: Alle PDF-Funktionen wurden aktualisiert/überschrieben.");

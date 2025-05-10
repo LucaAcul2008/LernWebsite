@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", function () {
     materials: [],
     quizzes: [],
     exams: [],
+    folders: [], // MODIFIED: Initialize folders array
     currentMaterial: null,
     currentQuiz: null,
     wrongQuestions: [],
@@ -22,85 +23,67 @@ document.addEventListener("DOMContentLoaded", function () {
     db: null, // Für die IndexedDB Instanz
     _eventListenersInitialized: false, // Add this flag
 
-    init: function () {
+      init: function () {
       console.log("App init: Initialisiere App...");
       this.loadData();
-      this.initIndexedDB().then(() => {
-        console.log("App init: IndexedDB initialisiert, lade PDF-Daten.");
-        this.loadPdfDataFromIndexedDB();
-      }).catch(error => {
-        console.error("App init: Fehler bei der Initialisierung von IndexedDB:", error);
-      });
+      this.initIndexedDB()
+        .then(() => {
+          console.log("App init: IndexedDB initialisiert, lade PDF-Daten.");
+          this.loadPdfDataFromIndexedDB();
+        })
+        .catch((error) => {
+          console.error(
+            "App init: Fehler bei der Initialisierung von IndexedDB:",
+            error
+          );
+        });
       this.updateUI();
       this.showPage("dashboard");
       this.setupEventListeners(); // Called in init
+      // this.initFlashcards(); // REMOVED: flashcards.js handles its own initialization
       this.updatePomodoroTasksDropdown();
       console.log("App init: App Initialisierung abgeschlossen.");
     },
-    
 
     loadData: function () {
-      // Deine loadData Implementierung (siehe #attachment_app_js_context_1 Zeile 30)
-      try {
-        const materials = localStorage.getItem("study-materials");
-        const quizzes = localStorage.getItem("study-quizzes");
-        const exams = localStorage.getItem("study-exams");
-        const wrongQuestions = localStorage.getItem("wrong-questions");
-
-        if (materials) this.materials = JSON.parse(materials);
-        if (quizzes) this.quizzes = JSON.parse(quizzes);
-        if (exams) this.exams = JSON.parse(exams);
-        if (wrongQuestions) this.wrongQuestions = JSON.parse(wrongQuestions);
-
-        this.loadPdfDataFromIndexedDB();
-      } catch (err) {
-        console.error("Error loading data:", err);
-        this.showNotification("Error", "Fehler beim Laden der Daten", "error");
+      console.log("loadData: Lade Daten aus localStorage.");
+      const materialsData = localStorage.getItem("studyMaterials");
+      if (materialsData) {
+        this.materials = JSON.parse(materialsData);
       }
+      const quizzesData = localStorage.getItem("studyQuizzes");
+      if (quizzesData) {
+        this.quizzes = JSON.parse(quizzesData);
+      }
+      const examsData = localStorage.getItem("studyExams");
+      if (examsData) {
+        this.exams = JSON.parse(examsData);
+      }
+      const foldersData = localStorage.getItem("studyFolders"); // ADDED
+      if (foldersData) {
+        // ADDED
+        this.folders = JSON.parse(foldersData); // ADDED
+      } // ADDED
+      // Load flashcard sets (delegated to flashcards.js)
+      if (
+        window.flashcardsApp &&
+        typeof window.flashcardsApp.loadSets === "function"
+      ) {
+        window.flashcardsApp.loadSets();
+      }
+      this.loadPdfDataFromIndexedDB(); // Load PDF data from IndexedDB
+      this.updateUI();
+      this.updateFoldersList(); // ADDED: Update folders display
     },
 
     saveData: function () {
-      try {
-        // Check material sizes before saving
-        this.materials.forEach((m) => {
-          if (m.summary) {
-            console.log(
-              `Material summary size for ${m.name}: ${m.summary.length} characters`
-            );
-          }
-        });
-
-        // Create copies of the data without the large PDF content for localStorage
-        const materialsCopy = this.materials.map((material) => {
-          // Create a copy without the large fileData property
-          const { fileData, ...materialWithoutFile } = material;
-          return materialWithoutFile;
-        });
-
-        // Try to save and log the size
-        const json = JSON.stringify(materialsCopy);
-        console.log(`Total materials data size: ${json.length} bytes`);
-
-        localStorage.setItem("study-materials", json);
-        localStorage.setItem("study-quizzes", JSON.stringify(this.quizzes));
-        localStorage.setItem("study-exams", JSON.stringify(this.exams));
-        localStorage.setItem(
-          "wrong-questions",
-          JSON.stringify(this.wrongQuestions)
-        );
-
-        return true;
-      } catch (err) {
-        console.error("Error saving data:", err);
-        this.showNotification(
-          "Error",
-          "Speicherlimit überschritten. Die Daten konnten nicht gespeichert werden.",
-          "error"
-        );
-        return false;
-      }
+      console.log("saveData: Speichere Daten in localStorage.");
+      localStorage.setItem("studyMaterials", JSON.stringify(this.materials));
+      localStorage.setItem("studyQuizzes", JSON.stringify(this.quizzes));
+      localStorage.setItem("studyExams", JSON.stringify(this.exams));
+      localStorage.setItem("studyFolders", JSON.stringify(this.folders)); // ADDED
+      // Saving flashcard sets is delegated to flashcards.js
     },
-
     // Update your savePdfToIndexedDB function
     savePdfToIndexedDB: function (materialId, fileData) {
       console.log("Saving PDF to IndexedDB:", materialId);
@@ -439,8 +422,21 @@ document.addEventListener("DOMContentLoaded", function () {
     },
 
     // Add this helper function for rendering
-    renderPdfWithData: function (material, pdfContainer) {
-      console.log("Rendering PDF with data, size:", material.fileData.length);
+   renderPdfWithData: function (material, pdfContainer) {
+      console.log(
+        "Rendering PDF with data, size:",
+        material.fileData ? material.fileData.length : "undefined" // Check if fileData exists
+      );
+
+      if (!material.fileData) { // ADDED: Guard against undefined fileData
+        console.error("renderPdfWithData: material.fileData is undefined. Cannot render PDF.");
+        pdfContainer.innerHTML = `
+        <div class="error-message">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>PDF-Daten sind nicht verfügbar. Bitte lade das Material erneut hoch.</p>
+        </div>`;
+        return;
+      }
 
       // Use PDF.js to render the PDF
       pdfjsLib
@@ -455,10 +451,10 @@ document.addEventListener("DOMContentLoaded", function () {
           pdfContainer.appendChild(pagesContainer);
 
           // Render first page initially
-          this.renderPage(pdf, 1, pagesContainer);
+          this.renderPage(pdf, 1, pagesContainer); // This should now work
 
           // Add page navigation
-          this.addPageNavigation(pdf, pdfContainer);
+          this.addPageNavigation(pdf, pdfContainer); // This should now work
         })
         .catch((err) => {
           console.error("Error rendering PDF:", err);
@@ -470,6 +466,59 @@ document.addEventListener("DOMContentLoaded", function () {
           }</p>
         </div>`;
         });
+    },
+     addPageNavigation: function(pdfDoc, pdfContainer) { // ADDED FUNCTION
+        let currentPageNum = 1;
+        const numPages = pdfDoc.numPages;
+
+        const navContainer = document.createElement('div');
+        navContainer.className = 'pdf-navigation-controls'; // Use a more specific class
+
+        const prevButton = document.createElement('button');
+        prevButton.textContent = 'Zurück';
+        prevButton.className = 'btn-secondary';
+        prevButton.disabled = true;
+
+        const nextButton = document.createElement('button');
+        nextButton.textContent = 'Weiter';
+        nextButton.className = 'btn-secondary';
+        if (numPages <= 1) nextButton.disabled = true;
+
+        const pageNumDisplay = document.createElement('span');
+        pageNumDisplay.textContent = `Seite ${currentPageNum} / ${numPages}`;
+        pageNumDisplay.style.margin = "0 10px";
+
+        const pagesHostContainer = pdfContainer.querySelector('.pdf-pages'); // Get the actual host for pages
+
+        prevButton.addEventListener('click', () => {
+            if (currentPageNum <= 1) return;
+            currentPageNum--;
+            this.renderPage(pdfDoc, currentPageNum, pagesHostContainer);
+            pageNumDisplay.textContent = `Seite ${currentPageNum} / ${numPages}`;
+            prevButton.disabled = currentPageNum === 1;
+            nextButton.disabled = currentPageNum === numPages;
+        });
+
+        nextButton.addEventListener('click', () => {
+            if (currentPageNum >= numPages) return;
+            currentPageNum++;
+            this.renderPage(pdfDoc, currentPageNum, pagesHostContainer);
+            pageNumDisplay.textContent = `Seite ${currentPageNum} / ${numPages}`;
+            prevButton.disabled = currentPageNum === 1;
+            nextButton.disabled = currentPageNum === numPages;
+        });
+
+        navContainer.appendChild(prevButton);
+        navContainer.appendChild(pageNumDisplay);
+        navContainer.appendChild(nextButton);
+
+        // Check if a navigation container already exists and replace it, or append
+        const existingNav = pdfContainer.querySelector('.pdf-navigation-controls');
+        if (existingNav) {
+            existingNav.replaceWith(navContainer);
+        } else {
+            pdfContainer.appendChild(navContainer);
+        }
     },
 
     // Load all PDF data from IndexedDB into materials
@@ -506,62 +555,106 @@ document.addEventListener("DOMContentLoaded", function () {
           console.error("Error loading PDFs from IndexedDB:", err);
         });
     },
-    
+     renderPage: function(pdfDoc, pageNum, container) { // ADDED FUNCTION
+        pdfDoc.getPage(pageNum).then(page => {
+            const viewport = page.getViewport({ scale: 1.5 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            canvas.style.marginBottom = "10px";
+            // Clear previous page if any, or ensure container is managed correctly
+            // For simplicity, this example appends. You might want to replace.
+            container.innerHTML = ''; // Clear previous page before rendering new one
+            container.appendChild(canvas);
 
-    
-
-   generateAIFlashcards: function (material) {
-  if (!material || !material.content) {
-    this.showNotification(
-      "Fehler",
-      "Kein Materialinhalt zum Erstellen von Lernkarten vorhanden.",
-      "error"
-    );
-    return;
-  }
-  this.showNotification(
-    "Info",
-    "Generiere Lernkarten mit KI... Dies kann einen Moment dauern.",
-    "info"
-  );
-
-  this.callOllamaAPI({
-    action: "generateFlashcards",
-    material: {
-      id: material.id,
-      name: material.name,
-      content: material.content,
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
+            page.render(renderContext).promise.then(() => {
+                console.log(`Page ${pageNum} rendered.`);
+            }).catch(renderErr => {
+                console.error(`Error rendering page ${pageNum}:`, renderErr);
+                container.innerHTML = `<p class="error-message">Fehler beim Rendern der Seite ${pageNum}.</p>`;
+            });
+        });
     },
-  })
-    .then((response) => {
-      if (response && response.success && response.flashcards) {
-        if (window.app && window.app.flashcards && typeof window.app.flashcards.prepareEditorWithAICards === 'function') {
-          window.app.flashcards.prepareEditorWithAICards(material.name, response.flashcards);
-          this.showPage('flashcards'); // Navigate to the flashcards page
-          // The flashcards.js module will now handle showing the editor view
-          this.showNotification("Erfolg", "KI-Lernkarten wurden generiert und sind bereit zur Überprüfung.", "success");
-        } else {
-          console.error("generateAIFlashcards FEHLER: Flashcard-Modul oder prepareEditorWithAICards Funktion nicht gefunden.");
-          this.showNotification("Fehler", "Lernkarten konnten nicht angezeigt werden.", "error");
-        }
-      } else {
-        console.error("generateAIFlashcards FEHLER: Ungültige oder fehlende Antwort von API.", response);
+
+    generateAIFlashcards: function (material) {
+      if (!material || !material.content) {
         this.showNotification(
-          "Fehler bei KI-Antwort",
-          response.error || "Lernkarten konnten nicht generiert werden. Überprüfe die Server-Antwort.",
+          "Fehler",
+          "Kein Materialinhalt zum Erstellen von Lernkarten vorhanden.",
           "error"
         );
+        return;
       }
-    })
-    .catch((error) => {
-      console.error("generateAIFlashcards FEHLER beim API-Aufruf:", error);
       this.showNotification(
-        "Fehler bei KI-Anfrage",
-        `Details: ${error.message || 'Unbekannter Fehler'}`,
-        "error"
+        "Info",
+        "Generiere Lernkarten mit KI... Dies kann einen Moment dauern.",
+        "info"
       );
-    });
-},
+
+      this.callOllamaAPI({
+        action: "generateFlashcards",
+        material: {
+          id: material.id,
+          name: material.name,
+          content: material.content,
+        },
+      })
+        .then((response) => {
+          if (response && response.success && response.flashcards) {
+            if (
+              window.app &&
+              window.app.flashcards &&
+              typeof window.app.flashcards.prepareEditorWithAICards ===
+                "function"
+            ) {
+              window.app.flashcards.prepareEditorWithAICards(
+                material.name,
+                response.flashcards
+              );
+              this.showPage("flashcards"); // Navigate to the flashcards page
+              // The flashcards.js module will now handle showing the editor view
+              this.showNotification(
+                "Erfolg",
+                "KI-Lernkarten wurden generiert und sind bereit zur Überprüfung.",
+                "success"
+              );
+            } else {
+              console.error(
+                "generateAIFlashcards FEHLER: Flashcard-Modul oder prepareEditorWithAICards Funktion nicht gefunden."
+              );
+              this.showNotification(
+                "Fehler",
+                "Lernkarten konnten nicht angezeigt werden.",
+                "error"
+              );
+            }
+          } else {
+            console.error(
+              "generateAIFlashcards FEHLER: Ungültige oder fehlende Antwort von API.",
+              response
+            );
+            this.showNotification(
+              "Fehler bei KI-Antwort",
+              response.error ||
+                "Lernkarten konnten nicht generiert werden. Überprüfe die Server-Antwort.",
+              "error"
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("generateAIFlashcards FEHLER beim API-Aufruf:", error);
+          this.showNotification(
+            "Fehler bei KI-Anfrage",
+            `Details: ${error.message || "Unbekannter Fehler"}`,
+            "error"
+          );
+        });
+    },
 
     activateTab: function (tabIdToShow) {
       const viewer = document.getElementById("material-viewer");
@@ -630,11 +723,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setupEventListeners: function () {
       if (this._eventListenersInitialized) {
-        console.warn("setupEventListeners: Listeners already initialized. Skipping to prevent duplicates.");
+        console.warn(
+          "setupEventListeners: Listeners already initialized. Skipping to prevent duplicates."
+        );
         // debugger; // You can uncomment this line to pause execution here and inspect
         return; // This is the crucial guard
       }
-      console.log("setupEventListeners: Initializing listeners for the first time.");
+      console.log(
+        "setupEventListeners: Initializing listeners for the first time."
+      );
 
       const self = this; // Sichere Referenz auf das 'app' Objekt
 
@@ -653,18 +750,34 @@ document.addEventListener("DOMContentLoaded", function () {
         regenerateSummaryBtn.addEventListener("click", () => {
           if (this.currentMaterial) {
             delete this.currentMaterial.summary;
-            if (this.db && typeof this.deleteSummaryFromIndexedDB === 'function') {
-                this.deleteSummaryFromIndexedDB(this.currentMaterial.id)
-                    .then(() => console.log("Zusammenfassung aus IndexedDB gelöscht."))
-                    .catch(err => console.error("Fehler beim Löschen der Zusammenfassung aus IDB:", err));
+            if (
+              this.db &&
+              typeof this.deleteSummaryFromIndexedDB === "function"
+            ) {
+              this.deleteSummaryFromIndexedDB(this.currentMaterial.id)
+                .then(() =>
+                  console.log("Zusammenfassung aus IndexedDB gelöscht.")
+                )
+                .catch((err) =>
+                  console.error(
+                    "Fehler beim Löschen der Zusammenfassung aus IDB:",
+                    err
+                  )
+                );
             } else if (this.db) {
-                 try {
-                    const transaction = this.db.transaction(["summaries"], "readwrite");
-                    const store = transaction.objectStore("summaries");
-                    store.delete(this.currentMaterial.id);
-                } catch (e) {
-                    console.error("Fehler beim Löschen der Zusammenfassung aus IDB (Fallback):", e);
-                }
+              try {
+                const transaction = this.db.transaction(
+                  ["summaries"],
+                  "readwrite"
+                );
+                const store = transaction.objectStore("summaries");
+                store.delete(this.currentMaterial.id);
+              } catch (e) {
+                console.error(
+                  "Fehler beim Löschen der Zusammenfassung aus IDB (Fallback):",
+                  e
+                );
+              }
             }
             if (typeof this.generateSummary === "function") {
               this.generateSummary(this.currentMaterial);
@@ -676,12 +789,71 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         });
       }
+      const allMaterialsFilter = document.getElementById('all-materials-filter');
+      if (allMaterialsFilter) {
+        allMaterialsFilter.addEventListener('click', () => {
+          this.updateMaterialsList(null); // Pass null to show all
+          document.querySelectorAll('.folder-item.active').forEach(activeItem => activeItem.classList.remove('active'));
+          allMaterialsFilter.classList.add('active');
+        });
+      }
+
+      // Add New Folder Button
+      const addFolderBtn = document.getElementById("add-folder-btn");
+      if (addFolderBtn) {
+        addFolderBtn.addEventListener("click", () => {
+          this.showModal("create-folder-modal");
+        });
+      }
+
+      // Create Folder Form
+      const createFolderForm = document.getElementById("create-folder-form");
+      if (createFolderForm) {
+        createFolderForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const folderNameInput = document.getElementById("new-folder-name");
+          const folderName = folderNameInput.value.trim();
+          if (folderName) {
+            this.addFolder(folderName);
+            folderNameInput.value = ""; // Clear input
+            this.hideModal("create-folder-modal");
+          } else {
+            this.showNotification(
+              "Fehler",
+              "Bitte einen Ordnernamen eingeben.",
+              "error"
+            );
+          }
+        });
+      }
+
+      // Close Modals
+      document
+        .querySelectorAll(".modal .close-modal, .modal .modal-close")
+        .forEach((button) => {
+          button.addEventListener("click", () => {
+            const modal = button.closest(".modal");
+            if (modal) {
+              this.hideModal(modal.id);
+            }
+          });
+        });
+
+      // Click outside modal to close (for modals with overlay)
+      document.querySelectorAll(".modal-overlay").forEach((overlay) => {
+        overlay.addEventListener("click", () => {
+          const modal = overlay.closest(".modal");
+          if (modal) {
+            this.hideModal(modal.id);
+          }
+        });
+      });
 
       // PDF Upload
       const uploadArea = document.getElementById("upload-area");
       const pdfUpload = document.getElementById("pdf-upload");
 
-      if (uploadArea && pdfUpload) {
+     if (uploadArea && pdfUpload) {
         uploadArea.addEventListener("click", () => {
           console.log("Upload area clicked, triggering pdfUpload.click()"); // Debug log
           pdfUpload.click();
@@ -775,8 +947,12 @@ document.addEventListener("DOMContentLoaded", function () {
               this.currentMaterial &&
               !this.currentMaterial.summary
             ) {
-              const summaryContainer = document.getElementById("summary-text-container");
-              const isLoading = summaryContainer && summaryContainer.querySelector(".loading-spinner");
+              const summaryContainer = document.getElementById(
+                "summary-text-container"
+              );
+              const isLoading =
+                summaryContainer &&
+                summaryContainer.querySelector(".loading-spinner");
               if (!isLoading && typeof this.generateSummary === "function") {
                 this.generateSummary(this.currentMaterial);
               } else if (isLoading) {
@@ -845,8 +1021,8 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         });
       } else {
-          console.warn(
-            "setupEventListeners WARNUNG: Button 'generate-flashcards-ai-btn' nicht gefunden."
+        console.warn(
+          "setupEventListeners WARNUNG: Button 'generate-flashcards-ai-btn' nicht gefunden."
         );
       }
 
@@ -923,7 +1099,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const backToQuizzesBtn = document.getElementById("back-to-quizzes");
       if (backToQuizzesBtn) {
         backToQuizzesBtn.addEventListener("click", () => {
-          this.showPage('quizzes');
+          this.showPage("quizzes");
           const quizResults = document.getElementById("quiz-results");
           const quizList = document.getElementById("quiz-list");
           const activeQuizView = document.getElementById("active-quiz");
@@ -969,9 +1145,11 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         });
       }
-      
+
       this._eventListenersInitialized = true; // IMPORTANT: Set the flag to true at the VERY END of the function
-      console.log("setupEventListeners: Listeners initialized and flag set to true.");
+      console.log(
+        "setupEventListeners: Listeners initialized and flag set to true."
+      );
     },
 
     updateUI: function () {
@@ -984,7 +1162,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (material.completed) completedMaterials++;
       });
 
-        console.log("updateUI: Aktualisiere die Benutzeroberfläche.");
+      console.log("updateUI: Aktualisiere die Benutzeroberfläche.");
       // Update dashboard stats
       const materialsCount = document.getElementById("materials-count");
       if (materialsCount) {
@@ -1032,7 +1210,7 @@ document.addEventListener("DOMContentLoaded", function () {
       this.updateStudyAgenda();
 
       // Update materials list
-      this.updateMaterialsList();
+      this.updateMaterialsList(null); // MODIFIED: Pass null to show all materials
 
       // Update exam materials dropdown
       this.updateExamMaterialsDropdown();
@@ -1046,10 +1224,12 @@ document.addEventListener("DOMContentLoaded", function () {
     },
 
     // Add this new function to your app object
-    updatePomodoroTasksDropdown: function() {
-      const selectElement = document.getElementById('pomodoro-task');
+    updatePomodoroTasksDropdown: function () {
+      const selectElement = document.getElementById("pomodoro-task");
       if (!selectElement) {
-        console.warn("Pomodoro task select element ('pomodoro-task') not found.");
+        console.warn(
+          "Pomodoro task select element ('pomodoro-task') not found."
+        );
         return;
       }
 
@@ -1061,7 +1241,8 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       // Adjust the default option's text based on material availability
-      if (selectElement.options.length > 0) { // Check if the default option exists
+      if (selectElement.options.length > 0) {
+        // Check if the default option exists
         selectElement.options[0].value = ""; // Ensure default option has empty value
         if (this.materials.length === 0) {
           selectElement.options[0].textContent = "Keine Materialien verfügbar";
@@ -1072,8 +1253,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Populate with current materials if any
       if (this.materials.length > 0) {
-        this.materials.forEach(material => {
-          const option = document.createElement('option');
+        this.materials.forEach((material) => {
+          const option = document.createElement("option");
           option.value = material.id; // Use material ID as the value
           option.textContent = material.name;
           selectElement.appendChild(option);
@@ -1132,7 +1313,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     },
 
-    processPdfFile: function (file) {
+   processPdfFile: function (file) {
       document.getElementById("loading-modal").classList.add("active");
       document.getElementById("loading-message").textContent =
         "Verarbeite deine PDF...";
@@ -1143,28 +1324,21 @@ document.addEventListener("DOMContentLoaded", function () {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const fileData = e.target.result; // ArrayBuffer
+        let extractedContentForAI = ""; // Define here to be accessible in the whole onload scope
+        let newMaterial; // Define here to be accessible in the whole onload scope
+
         try {
-          let extractedContentForAI = "";
           if (this.extractPdfContent) {
-            // Sicherstellen, dass die Funktion existiert
             try {
               extractedContentForAI = await this.extractPdfContent(fileData);
-              this.materials.push(newMaterial);
-              this.saveData();
-              // this.updateMaterialsList(); // Wird durch updateUI() abgedeckt
-              this.updateUI(); // Stellt sicher, dass ALLE UI-Teile, inkl. exam-materials dropdown, aktualisiert werden
-              this.showNotification("Erfolg", `${materialName} erfolgreich hochgeladen und Inhalt extrahiert.`, "success");
-              // Strikte Prüfung HIER: Wenn kein Text extrahiert wurde, ist das ein Fehler für die weitere Verarbeitung,
-              // insbesondere für die Zusammenfassungsfunktion.
+              // Strikte Prüfung HIER:
               if (
                 !extractedContentForAI ||
                 extractedContentForAI.trim() === ""
               ) {
                 console.warn(
-                  "processPdfFile: PDF-Inhaltsextraktion ergab keinen Text oder nur Leerraum. Material wird nicht für Zusammenfassungen/Quiz nutzbar sein."
+                  "processPdfFile: PDF-Inhaltsextraktion ergab keinen Text oder nur Leerraum."
                 );
-                // Wir werfen hier einen Fehler, da für die Kernfunktionen (Zusammenfassung, Quiz) Text benötigt wird.
-                // Wenn PDFs ohne Text erlaubt sein sollen, aber dann bestimmte Funktionen deaktiviert, müsste die Logik hier anders sein.
                 throw new Error(
                   "Der PDF-Inhalt konnte nicht extrahiert werden oder die PDF enthält keinen Text. Zusammenfassungs- und Quizfunktionen sind nicht verfügbar."
                 );
@@ -1174,21 +1348,21 @@ document.addEventListener("DOMContentLoaded", function () {
                 extractedContentForAI.length
               );
             } catch (extractError) {
-              // Fehler von extractPdfContent direkt weiterleiten
               console.error(
                 "processPdfFile: Fehler bei der PDF-Inhaltsextraktion:",
-                extractError.message
+                extractError.message // Use extractError here
               );
-              this.showNotification("Fehler bei PDF-Verarbeitung", `PDF konnte nicht verarbeitet werden: ${error.message}`, "error");
-              throw extractError; // Stellt sicher, dass der äußere catch-Block diesen Fehler behandelt
-            } finally {
-              document
-                .getElementById("loading-modal")
-                .classList.remove("active");
+              this.showNotification(
+                "Fehler bei PDF-Verarbeitung",
+                `PDF konnte nicht verarbeitet werden: ${extractError.message}`, // MODIFIED: Use extractError.message
+                "error"
+              );
+              // throw extractError; // Re-throwing here will be caught by the outer catch
+              return; // Exit if extraction fails critically
             }
           } else {
             console.error(
-              "processPdfFile FEHLER: this.extractPdfContent ist keine Funktion. PDF-Inhalt kann nicht extrahiert werden."
+              "processPdfFile FEHLER: this.extractPdfContent ist keine Funktion."
             );
             throw new Error(
               "Funktion zur PDF-Inhaltsextraktion nicht verfügbar."
@@ -1197,13 +1371,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
           // Speichere die PDF-Rohdaten in IndexedDB
           if (typeof this.savePdfToDB === "function") {
-            // Bevorzugt, falls von pdf-fix.js gepatcht
             await this.savePdfToDB(materialId, fileData);
-            console.log("PDF-Daten mit this.savePdfToDB gespeichert.");
           } else if (typeof this.savePdfToIndexedDB === "function") {
-            // Fallback
             await this.savePdfToIndexedDB(materialId, fileData);
-            console.log("PDF-Daten mit this.savePdfToIndexedDB gespeichert.");
           } else {
             console.error(
               "processPdfFile FEHLER: Keine geeignete Funktion zum Speichern von PDF-Daten in IndexedDB gefunden."
@@ -1211,41 +1381,43 @@ document.addEventListener("DOMContentLoaded", function () {
             throw new Error("PDF Speicherfunktion (DB) nicht verfügbar.");
           }
 
+           const activeFolderId = this.getActiveFolderId(); // ADDED: Get current folder
+
           // Erstelle das Materialobjekt erst, wenn alle kritischen Schritte erfolgreich waren
-          const newMaterial = {
+          newMaterial = { // Assign to the pre-declared variable
             id: materialId,
             name: materialName,
             type: "pdf",
             fileName: file.name,
             dateAdded: new Date().toISOString(),
-            content: extractedContentForAI, // Ist jetzt garantiert nicht leer, wenn dieser Punkt erreicht wird
+            content: extractedContentForAI,
             summary: "",
             notes: "",
             completed: false,
             quizAttempts: [],
             fileAvailable: true,
+            folderId: activeFolderId, // ADDED: Assign folderId
           };
 
-          this.materials.push(newMaterial);
-          this.saveData();
-          this.updateMaterialsList();
+          this.materials.push(newMaterial); // MOVED: Push after newMaterial is defined
+          this.saveData(); // MOVED: Save after pushing
+
+          this.updateUI();
           this.showNotification(
             "Erfolg",
             `${materialName} erfolgreich hochgeladen und Inhalt extrahiert.`,
             "success"
           );
-        } catch (error) {
-          // Fängt Fehler aus der Inhaltsextraktion oder DB-Speicherung
+        } catch (error) { // This is the outer catch for general errors in reader.onload
           console.error(
             "Fehler beim Verarbeiten der PDF-Datei in reader.onload:",
-            error
+            error // This 'error' is from the outer catch
           );
           this.showNotification(
             "Fehler bei PDF-Verarbeitung",
-            `PDF konnte nicht verarbeitet werden: ${error.message}`,
+            `PDF konnte nicht verarbeitet werden: ${error.message}`, // This 'error.message' is correct here
             "error"
           );
-          // Das Material wird in diesem Fehlerfall nicht zur Liste hinzugefügt.
         } finally {
           document.getElementById("loading-modal").classList.remove("active");
         }
@@ -1262,6 +1434,86 @@ document.addEventListener("DOMContentLoaded", function () {
       };
 
       reader.readAsArrayBuffer(file);
+    },
+    addFolder: function (folderName) {
+      const newFolder = {
+        id: `folder-${Date.now()}`,
+        name: folderName,
+      };
+      this.folders.push(newFolder);
+      this.saveData();
+      this.updateFoldersList();
+      this.showNotification(
+        "Erfolg",
+        `Ordner "${folderName}" erstellt.`,
+        "success"
+      );
+    },
+    showModal: function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add("active");
+            modal.setAttribute("aria-hidden", "false");
+        } else {
+            console.error(`Modal mit ID ${modalId} nicht gefunden.`);
+        }
+    },
+
+    hideModal: function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove("active");
+            modal.setAttribute("aria-hidden", "true");
+        } else {
+            console.error(`Modal mit ID ${modalId} nicht gefunden.`);
+        }
+    },
+
+    updateFoldersList: function () {
+      const foldersContainer = document.getElementById("folders-container");
+      const allMaterialsFilter = document.getElementById('all-materials-filter'); // Get the "All Materials" item 
+
+      if (!foldersContainer) {
+        return;
+      }
+      foldersContainer.innerHTML = ""; 
+
+      if (this.folders.length === 0 && allMaterialsFilter) { // This line should now work
+        // foldersContainer.innerHTML = '<p class="empty-state">Keine Ordner erstellt.</p>'; // This line can be removed or adjusted
+        // The "All Materials" item is static HTML, so we just ensure it's styled correctly
+      }
+
+      const ul = document.createElement("ul"); // This ul will only contain dynamic folders
+      ul.className = "folders-list-dynamic"; // New class for dynamic part
+      this.folders.forEach(folder => {
+        const li = document.createElement("li");
+        li.className = "folder-item";
+        li.textContent = folder.name;
+        li.setAttribute("data-folder-id", folder.id);
+        // Add click listener to filter materials by folder later
+        li.addEventListener("click", () => {
+          // Placeholder for filtering
+          console.log(`Ordner ausgewählt: ${folder.name} (ID: ${folder.id})`);
+          this.updateMaterialsList(folder.id); // We'll modify updateMaterialsList later
+
+          // Highlight selected folder
+          document
+            .querySelectorAll(".folder-item.active")
+            .forEach((activeItem) => activeItem.classList.remove("active"));
+          li.classList.add("active");
+          // Also un-highlight "All Materials" if a specific folder is clicked
+          const allMaterialsFilter = document.getElementById(
+            "all-materials-filter"
+          );
+          if (allMaterialsFilter) allMaterialsFilter.classList.remove("active");
+        });
+        ul.appendChild(li);
+      });
+      foldersContainer.appendChild(ul);
+
+        if (!document.querySelector('.folder-item.active') && allMaterialsFilter) {
+        // allMaterialsFilter.classList.add('active'); // This might be too aggressive here, handle active state on click
+      }
     },
 
     extractPdfContent: async function (fileData) {
@@ -1329,11 +1581,27 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     },
 
-     updateMaterialsList: function () {
+   updateMaterialsList: function (folderId = null) { // Definition is fine
       const materialsContainer = document.querySelector(".materials-container");
 
       if (!materialsContainer) {
-        console.error("updateMaterialsList FEHLER: materialsContainer nicht gefunden.");
+        console.error(
+          "updateMaterialsList FEHLER: materialsContainer nicht gefunden."
+        );
+        return;
+      }
+
+      // Filter materials based on folderId
+      const materialsToDisplay = folderId // This line should now work correctly
+        ? this.materials.filter((material) => material.folderId === folderId)
+        : this.materials; // If no folderId, show all (we'll handle "All" filter explicitly later)
+
+
+      if (materialsToDisplay.length === 0) {
+        materialsContainer.innerHTML = folderId
+          ? '<p class="empty-state">Keine Materialien in diesem Ordner.</p>'
+          : '<p class="empty-state">Noch keine Lernmaterialien hochgeladen.</p>';
+        materialsContainer.classList.add("empty");
         return;
       }
 
@@ -1347,7 +1615,8 @@ document.addEventListener("DOMContentLoaded", function () {
       materialsContainer.classList.remove("empty");
       materialsContainer.innerHTML = "";
 
-      this.materials.forEach((material) => {
+      materialsToDisplay.forEach((material) => {
+        // MODIFIED to use materialsToDisplay
         const materialCard = document.createElement("div");
         materialCard.className = "material-card";
         materialCard.setAttribute("data-id", material.id);
@@ -1358,17 +1627,22 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         let dateAddedText = "Datum unbekannt";
-        if (material.dateAdded) { // Checks if dateAdded exists
+        if (material.dateAdded) {
+          // Checks if dateAdded exists
           const dateObj = new Date(material.dateAdded);
-          if (dateObj && !isNaN(dateObj.getTime())) { // Checks if the date string was parsed successfully
+          if (dateObj && !isNaN(dateObj.getTime())) {
+            // Checks if the date string was parsed successfully
             dateAddedText = dateObj.toLocaleDateString("de-DE");
           } else {
             // This line is likely being executed for the problematic materials
-            console.warn(`Ungültiges Datum für Material ID ${material.id}:`, material.dateAdded);
+            console.warn(
+              `Ungültiges Datum für Material ID ${material.id}:`,
+              material.dateAdded
+            );
           }
         } else {
-            // This would be executed if material.dateAdded is missing entirely
-            console.warn(`Fehlendes Datum für Material ID ${material.id}`);
+          // This would be executed if material.dateAdded is missing entirely
+          console.warn(`Fehlendes Datum für Material ID ${material.id}`);
         }
 
         materialCard.innerHTML = `
@@ -1409,7 +1683,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // Add delete functionality
         const deleteBtn = materialCard.querySelector(".delete-material");
         deleteBtn.addEventListener("click", (e) => {
-          e.stopPropagation(); 
+          e.stopPropagation();
           this.confirmDeleteMaterial(material.id);
         });
 
@@ -2372,6 +2646,14 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     },
 
+    getActiveFolderId: function() { // ADDED HELPER FUNCTION
+      const activeFolderElement = document.querySelector('.folders-sidebar .folder-item.active');
+      if (activeFolderElement && activeFolderElement.id !== 'all-materials-filter') {
+        return activeFolderElement.getAttribute('data-folder-id');
+      }
+      return null; // No specific folder selected, or "All Materials" is selected
+    },
+
     deleteExam: function (examId) {
       this.exams = this.exams.filter((exam) => exam.id !== examId);
       if (!this.saveData()) {
@@ -2893,28 +3175,40 @@ document.addEventListener("DOMContentLoaded", function () {
       }, 300);
     },
 
-    getIconForNotificationType: function (type) { // Example of the last method in appCoreLogic
+    getIconForNotificationType: function (type) {
+      // Example of the last method in appCoreLogic
       switch (type) {
-        case "success": return "fa-check-circle";
-        case "error": return "fa-exclamation-circle";
-        case "warning": return "fa-exclamation-triangle";
-        case "info": default: return "fa-info-circle";
+        case "success":
+          return "fa-check-circle";
+        case "error":
+          return "fa-exclamation-circle";
+        case "warning":
+          return "fa-exclamation-triangle";
+        case "info":
+        default:
+          return "fa-info-circle";
       }
     },
   }; // End of appCoreLogic
 
- if (typeof window.app === 'undefined') {
-    console.log("DOMContentLoaded (app.js): window.app nicht vorhanden, erstelle es.");
+  if (typeof window.app === "undefined") {
+    console.log(
+      "DOMContentLoaded (app.js): window.app nicht vorhanden, erstelle es."
+    );
     window.app = {};
   } else {
-    console.log("DOMContentLoaded (app.js): window.app bereits vorhanden, erweitere es.");
+    console.log(
+      "DOMContentLoaded (app.js): window.app bereits vorhanden, erweitere es."
+    );
   }
 
   Object.assign(window.app, appCoreLogic);
-  console.log("DOMContentLoaded (app.js): window.app wurde mit appCoreLogic erweitert.");
+  console.log(
+    "DOMContentLoaded (app.js): window.app wurde mit appCoreLogic erweitert."
+  );
 
   // Enhance window.app.showPage function to handle alternative IDs and missing pages
-  if (window.app && typeof window.app.showPage === 'function') {
+  if (window.app && typeof window.app.showPage === "function") {
     const originalShowPageGlobal = window.app.showPage;
     window.app.showPage = function (pageIdToShow) {
       console.log(`Attempting to show page (enhanced global): ${pageIdToShow}`);
@@ -2929,7 +3223,9 @@ document.addEventListener("DOMContentLoaded", function () {
       // Check if page exists before trying to show it; if not, create a placeholder
       const pageElement = document.getElementById(currentPageId);
       if (!pageElement) {
-        console.error(`Page with ID "${currentPageId}" not found. Adding safety div.`);
+        console.error(
+          `Page with ID "${currentPageId}" not found. Adding safety div.`
+        );
         const placeholder = document.createElement("div");
         placeholder.id = currentPageId;
         placeholder.classList.add("page"); // Ensure it's treated as a page
@@ -2944,7 +3240,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const mainContent = document.querySelector(".main-content");
         if (mainContent) {
           // Remove existing placeholder for this ID if any, before adding
-          const existingPlaceholder = mainContent.querySelector(`.page#${CSS.escape(currentPageId)}`);
+          const existingPlaceholder = mainContent.querySelector(
+            `.page#${CSS.escape(currentPageId)}`
+          );
           if (existingPlaceholder) {
             existingPlaceholder.remove();
           }
@@ -2955,15 +3253,22 @@ document.addEventListener("DOMContentLoaded", function () {
       // It should handle making 'currentPageId' visible and hiding others.
       return originalShowPageGlobal.call(window.app, currentPageId);
     };
-    console.log("DOMContentLoaded (app.js): window.app.showPage wurde erweitert (mit Placeholder-Logik).");
+    console.log(
+      "DOMContentLoaded (app.js): window.app.showPage wurde erweitert (mit Placeholder-Logik)."
+    );
   } else {
-    console.error("DOMContentLoaded (app.js): window.app.showPage ist keine Funktion oder window.app nicht definiert, kann nicht erweitert werden.");
+    console.error(
+      "DOMContentLoaded (app.js): window.app.showPage ist keine Funktion oder window.app nicht definiert, kann nicht erweitert werden."
+    );
   }
 
   // Initialize the App ONCE, after window.app is fully configured.
-  if (window.app && typeof window.app.init === 'function') {
+  if (window.app && typeof window.app.init === "function") {
     window.app.init();
   } else {
-    console.error("DOMContentLoaded (app.js): App-Kern konnte nicht initialisiert werden. window.app.init ist nicht verfügbar.");
+    console.error(
+      "DOMContentLoaded (app.js): App-Kern konnte nicht initialisiert werden. window.app.init ist nicht verfügbar."
+    );
   }
+
 }); // This is the single, correct closing brace for the DOMContentLoaded event listener.

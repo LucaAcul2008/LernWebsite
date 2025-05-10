@@ -785,3 +785,154 @@ body.dark-mode .chart-container {
 body.dark-mode .analytics-card .analytics-header h3 {
     color: var(--dark-text-primary);
 }
+
+/* Materials Page - Folders */
+body.dark-mode .folders-sidebar {
+    background-color: var(--dark-bg-secondary); /* Darker background for the folder sidebar */
+}
+
+body.dark-mode .folders-sidebar h3 {
+    color: var(--dark-text-primary);
+    border-bottom-color: var(--dark-border);
+}
+
+body.dark-mode .folder-item {
+    color: var(--dark-text-secondary);
+}
+
+body.dark-mode .folder-item:hover {
+    background-color: var(--dark-hover);
+    color: var(--dark-accent-primary);
+}
+
+body.dark-mode .folder-item.active {
+    background-color: var(--dark-accent-primary-transparent); /* Use a transparent accent */
+    color: var(--dark-accent-primary);
+}
+
+body.dark-mode #folders-container .empty-state {
+    color: var(--dark-text-muted);
+}
+
+/* Modal Dark Mode (ensure your modal styles are adapted) */
+body.dark-mode .modal-overlay {
+    background-color: rgba(0, 0, 0, 0.75); /* Darker overlay */
+}
+
+body.dark-mode .modal-content {
+    background-color: var(--dark-bg-secondary); /* Dark modal background */
+    border: 1px solid var(--dark-border);
+}
+
+body.dark-mode .modal-header {
+    color: var(--dark-text-primary);
+    border-bottom: 1px solid var(--dark-border);
+}
+body.dark-mode .modal-header h2 { /* If h2 is directly in modal-header */
+    color: var(--dark-text-primary);
+}
+
+body.dark-mode .modal-close {
+    color: var(--dark-text-secondary);
+}
+body.dark-mode .modal-close:hover {
+    color: var(--dark-text-primary);
+}
+
+body.dark-mode .modal-body {
+    color: var(--dark-text-primary);
+}
+
+body.dark-mode #create-folder-modal label {
+    color: var(--dark-text-primary);
+}
+body.dark-mode #create-folder-modal input[type="text"] {
+    background-color: var(--dark-bg-tertiary);
+    color: var(--dark-text-primary);
+    border: 1px solid var(--dark-border);
+}
+body.dark-mode #create-folder-modal input[type="text"]:focus {
+    border-color: var(--dark-accent-primary);
+    box-shadow: 0 0 0 2px var(--dark-accent-primary-transparent);
+}
+
+body.dark-mode .flashcard-front code, 
+body.dark-mode .flashcard-back code {
+    background-color: var(--dark-bg-tertiary); /* Darker code background */
+    color: var(--dark-accent-primary); /* Accent color for code text */
+    border: 1px solid var(--dark-border);
+}
+
+body.dark-mode .flashcard-front pre, 
+body.dark-mode .flashcard-back pre {
+    background-color: var(--dark-bg-primary); /* Very dark for pre blocks */
+    border: 1px solid var(--dark-border);
+}
+
+body.dark-mode .flashcard-front pre code, 
+body.dark-mode .flashcard-back pre code {
+    background-color: transparent;
+    border: none;
+}
+
+body.dark-mode .flashcard-front blockquote, 
+body.dark-mode .flashcard-back blockquote {
+    border-left-color: var(--dark-accent-secondary);
+    color: var(--dark-text-secondary);
+}
+
+/* Flashcard Editor Image Uploads - Dark Mode */
+body.dark-mode .flashcard-edit-side label {
+    color: var(--dark-text-secondary);
+}
+
+body.dark-mode .flashcard-edit-image {
+    background-color: var(--dark-bg-tertiary);
+    border-color: var(--dark-border);
+    color: var(--dark-text-primary); /* For the "No file chosen" text */
+}
+
+body.dark-mode .flashcard-edit-image-preview {
+    border-color: var(--dark-border);
+}
+
+body.dark-mode .flashcard-edit-item .remove-image-btn {
+    color: var(--dark-danger);
+}
+body.dark-mode .flashcard-edit-item .remove-image-btn:hover {
+    background-color: rgba(207, 102, 121, 0.1); /* Faint danger background on hover */
+}
+
+
+/* Flashcard Display Image - Dark Mode */
+body.dark-mode .flashcard-image {
+    border: 1px solid var(--dark-border); /* Optional: add a border in dark mode if needed */
+    /* background-color: var(--dark-bg-tertiary); /* If you want a bg for transparent images */
+}
+
+/* Flashcard SRS Controls - Dark Mode */
+body.dark-mode .flashcard-srs-controls {
+    border-top-color: var(--dark-border);
+}
+
+body.dark-mode .flashcard-srs-controls p {
+    color: var(--dark-text-secondary);
+}
+
+/* SRS button colors in dark mode can often remain the same if they are sufficiently contrasty,
+   or you can define specific dark mode versions if needed.
+   The default button styles might already handle text color inversion for dark buttons.
+   If your base .btn-danger, .btn-warning etc. don't have white text by default, add it here.
+*/
+body.dark-mode .flashcard-srs-controls .btn-danger,
+body.dark-mode .flashcard-srs-controls .btn-warning,
+body.dark-mode .flashcard-srs-controls .btn-info,
+body.dark-mode .flashcard-srs-controls .btn-success {
+    color: #fff; /* Ensure text is white on colored buttons */
+}
+
+/* You might want slightly different hover states for dark mode if the base colors are too bright */
+body.dark-mode .flashcard-srs-controls .btn-danger:hover { background-color: var(--dark-danger-hover, #c82333); border-color: var(--dark-danger-hover, #bd2130); }
+body.dark-mode .flashcard-srs-controls .btn-warning:hover { background-color: var(--dark-warning-hover, #e0a800); border-color: var(--dark-warning-hover, #d39e00); }
+body.dark-mode .flashcard-srs-controls .btn-info:hover { background-color: var(--dark-info-hover, #138496); border-color: var(--dark-info-hover, #117a8b); }
+body.dark-mode .flashcard-srs-controls .btn-success:hover { background-color: var(--dark-success-hover, #1e7e34); border-color: var(--dark-success-hover, #1c7430); }

@@ -200,29 +200,61 @@
           <p>Lade PDFs hoch und verwalte deine Lernunterlagen</p>
         </div>
 
-        <div
-          id="upload-area"
-          class="upload-area"
-          tabindex="0"
-          role="button"
-          aria-label="PDF hochladen"
-        >
-          <input type="file" id="pdf-upload" accept="application/pdf" hidden />
-          <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
-          <p>Ziehe deine PDF-Datei hierher oder klicke zum Auswählen</p>
-          <button class="upload-btn">PDF auswählen</button>
+        <div class="materials-actions-bar">
+          <!-- ADDED WRAPPER -->
+          <button id="add-folder-btn" class="btn-secondary">
+            <i class="fas fa-folder-plus"></i> Neuer Ordner
+          </button>
+          <!-- Future: Add sort/filter options here -->
         </div>
 
-        <div class="section-title">
-          <i class="fas fa-book-open" aria-hidden="true"></i> Meine Materialien
-        </div>
+        <div class="materials-layout">
+          <!-- ADDED WRAPPER for two columns -->
+          <div class="folders-sidebar">
+            <!-- ADDED: Sidebar for folders -->
+            <h3>Ordner</h3>
+            <ul class="folders-list">
+              <li id="all-materials-filter" class="folder-item active">
+                Alle Materialien
+              </li>
+            </ul>
+            <div id="folders-container" aria-live="polite">
+              <p class="empty-state">Keine Ordner erstellt.</p>
+            </div>
+          </div>
 
-        <div class="materials-container empty" aria-live="polite">
-          <p class="empty-state">Noch keine Lernmaterialien hochgeladen.</p>
+          <div class="materials-main-content">
+            <!-- ADDED: Main area for materials -->
+            <div
+              id="upload-area"
+              class="upload-area"
+              tabindex="0"
+              role="button"
+              aria-label="PDF hochladen"
+            >
+              <input
+                type="file"
+                id="pdf-upload"
+                accept="application/pdf"
+                hidden
+              />
+              <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+              <p>Ziehe deine PDF-Datei hierher oder klicke zum Auswählen</p>
+              <button class="upload-btn">PDF auswählen</button>
+            </div>
+
+            <div class="section-title">
+              <i class="fas fa-book-open" aria-hidden="true"></i> Meine
+              Materialien
+            </div>
+
+            <div class="materials-container empty" aria-live="polite">
+              <p class="empty-state">Noch keine Lernmaterialien hochgeladen.</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Material Viewer Page -->
       <!-- Material Viewer Page -->
       <div id="material-viewer" class="page" role="tabpanel">
         <div class="material-header">
@@ -562,19 +594,44 @@
           </div>
           <div class="flashcard-navigation">
             <button id="flashcard-prev-btn" class="btn-secondary">
-              <i class="fas fa-arrow-left"></i> Vorherige
+              <i class="fas fa-arrow-left"></i> Zurück
             </button>
             <button id="flashcard-flip-btn" class="btn-primary">
-              Umdrehen
+              <i class="fas fa-sync-alt"></i> Umdrehen
             </button>
             <button id="flashcard-next-btn" class="btn-secondary">
-              Nächste <i class="fas fa-arrow-right"></i>
+              Weiter <i class="fas fa-arrow-right"></i>
             </button>
           </div>
-          <button id="finish-flashcard-session-btn" class="btn-accent">
-            Session beenden
+
+          <!-- ADD SRS CONTROLS HERE -->
+          <div
+            id="flashcard-srs-controls"
+            class="flashcard-srs-controls hidden"
+          >
+            <p>Wie gut konntest du dich erinnern?</p>
+            <button class="btn-srs btn-danger" data-quality="0">
+              Nochmal (0)
+            </button>
+            <button class="btn-srs btn-warning" data-quality="1">
+              Schwer (1)
+            </button>
+            <button class="btn-srs btn-info" data-quality="3">Gut (3)</button>
+            <!-- SM-2 typically uses 0-5, mapping "Good" to 3 or 4 -->
+            <button class="btn-srs btn-success" data-quality="5">
+              Einfach (5)
+            </button>
+          </div>
+          <!-- END OF SRS CONTROLS -->
+
+          <button
+            id="finish-flashcard-session-btn"
+            class="btn-secondary btn-finish-session"
+          >
+            <i class="fas fa-stop-circle"></i> Session beenden
           </button>
         </div>
+        <!-- End of flashcard-study-view -->
       </div>
 
       <!-- Remaining code sections continue with similar improvements... -->
@@ -805,6 +862,37 @@
         <div class="loading-spinner" aria-live="assertive">
           <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
           <p id="loading-message">Lädt...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Folder Modal -->
+    <div
+      id="create-folder-modal"
+      class="modal"
+      role="dialog"
+      aria-labelledby="create-folder-title"
+      aria-hidden="true"
+    >
+      <div class="modal-overlay"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="create-folder-title">Neuen Ordner erstellen</h2>
+          <button class="modal-close" aria-label="Schließen">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="create-folder-form">
+            <div class="form-group">
+              <label for="new-folder-name">Ordnername</label>
+              <input
+                type="text"
+                id="new-folder-name"
+                required
+                placeholder="z.B. Mathematik Grundlagen"
+              />
+            </div>
+            <button type="submit" class="btn-primary">Ordner erstellen</button>
+          </form>
         </div>
       </div>
     </div>
