@@ -1,73 +1,150 @@
 :root {
     --dark-bg-primary: #121212;
     --dark-bg-secondary: #1e1e1e;
-    --dark-bg-tertiary: #2d2d2d;
-    --dark-text-primary: #e0e0e0;
-    --dark-text-secondary: #b0b0b0;
-    --dark-accent-primary: #4cc9f0; /* Light blue for primary accent */
-    --dark-accent-secondary: #4361ee; /* Original primary color, can be used as secondary accent */
-    --dark-border: #444;
-    --dark-shadow: rgba(0, 0, 0, 0.3);
-    --dark-hover: #3a3a3a; /* Darker hover background */
-    --dark-danger: #cf6679;
-    --dark-warning: #ffd166;
-    --dark-success: #06d6a0;
-    --dark-info: #118ab2; /* A general dark info color */
+    --dark-bg-tertiary: #2d2d2d; /* Slightly lighter for nested elements */
+    --dark-text-primary: #e0e0e0; /* Main text */
+    --dark-text-secondary: #b0b0b0; /* Subdued text */
+    --dark-text-light: #f0f0f0; /* For very dark backgrounds, like sidebar */
+    --dark-accent-primary: #4cc9f0; /* Bright accent, e.g., cyan */
+    --dark-accent-secondary: #4361ee; /* Original primary, can be secondary accent */
+    --dark-border: #444; /* Borders for cards, inputs */
+    --dark-shadow: rgba(0, 0, 0, 0.4); /* Darker shadows */
+    --dark-hover: #3a3a3a; /* Hover for interactive elements */
+    --dark-danger: #cf6679; /* Error/delete */
+    --dark-warning: #ffd166; /* Warnings */
+    --dark-success: #06d6a0; /* Success */
+    --dark-info: #118ab2; /* Informational */
 
     /* Specific for info messages in dark mode */
     --dark-info-bg: #2a2a45; /* Darker blue/purple background */
     --dark-info-text: #90caf9; /* Lighter blue text */
     --dark-info-border: #42a5f5; /* Brighter blue border */
+
+    /* For focus rings on inputs */
+    --dark-accent-primary-transparent: rgba(76, 201, 240, 0.3);
 }
 
 body.dark-mode {
     background-color: var(--dark-bg-primary);
     color: var(--dark-text-primary);
-    /* ... other general dark mode body styles ... */
+}
+
+/* Skip to content link */
+body.dark-mode .skip-to-content {
+    background-color: var(--dark-accent-primary);
+    color: var(--dark-bg-primary); /* High contrast */
+}
+body.dark-mode .skip-to-content:focus {
+    color: var(--dark-bg-primary);
 }
 
 /* Sidebar */
 body.dark-mode .sidebar {
-    background-color: var(--dark-bg-secondary);
+    background: var(--dark-bg-secondary); /* Solid dark, instead of gradient for simplicity */
     border-right: 1px solid var(--dark-border);
+    color: var(--dark-text-light); /* Default text color for sidebar */
 }
-
+body.dark-mode .sidebar .logo h1 {
+    color: var(--dark-text-light);
+}
+body.dark-mode .sidebar .logo .logo-icon {
+    color: var(--dark-accent-primary); /* Make logo icon stand out */
+}
 body.dark-mode .nav-links li {
-    color: var(--dark-text-secondary);
+    color: var(--dark-text-primary); /* Brighter than secondary for better readability */
 }
-
 body.dark-mode .nav-links li:hover {
     background-color: var(--dark-hover);
-    color: var(--dark-text-primary);
+    color: var(--dark-accent-primary);
 }
-
 body.dark-mode .nav-links li.active {
     color: var(--dark-accent-primary);
     background-color: var(--dark-bg-tertiary);
 }
-
+body.dark-mode .nav-links li.active i {
+    color: var(--dark-accent-primary);
+}
 body.dark-mode .nav-links li::before {
     background-color: var(--dark-accent-primary);
 }
+body.dark-mode .sidebar-footer {
+    border-top: 1px solid var(--dark-border);
+}
 
-/* Cards and containers */
-body.dark-mode .stat-card,
+/* Main Content & Page Headers */
+body.dark-mode .main-content {
+    background-color: var(--dark-bg-primary);
+}
+body.dark-mode .page-header {
+    background-color: var(--dark-bg-secondary); /* Consistent with cards */
+    border-bottom: 1px solid var(--dark-border);
+}
+body.dark-mode .page-header h2 {
+    color: var(--dark-text-primary);
+}
+body.dark-mode .page-header p {
+    color: var(--dark-text-secondary);
+}
+
+/* Dashboard */
+body.dark-mode .dashboard-header h2 {
+    color: var(--dark-text-primary);
+}
+body.dark-mode .date-time span {
+    color: var(--dark-text-secondary);
+}
+body.dark-mode .stat-card {
+    background-color: var(--dark-bg-secondary);
+    border: 1px solid var(--dark-border);
+    box-shadow: 0 4px 6px var(--dark-shadow);
+}
+body.dark-mode .stat-card:hover {
+    background-color: var(--dark-bg-tertiary);
+}
+body.dark-mode .stat-card h3 {
+    color: var(--dark-text-secondary);
+}
+body.dark-mode .stat-card .stat-value {
+    color: var(--dark-text-primary);
+}
+body.dark-mode .stat-card i {
+    color: var(--dark-accent-primary); /* Consistent icon color */
+}
+body.dark-mode .section-title {
+    color: var(--dark-text-primary);
+    /* border-bottom: 1px solid var(--dark-border); if it has one */
+}
+body.dark-mode .section-title i {
+    color: var(--dark-accent-primary);
+}
+body.dark-mode .timer-card,
+body.dark-mode .agenda-card {
+    background-color: var(--dark-bg-secondary);
+    border: 1px solid var(--dark-border);
+    box-shadow: 0 4px 6px var(--dark-shadow);
+}
+body.dark-mode .timer-display {
+    color: var(--dark-text-primary);
+}
+body.dark-mode .timer-settings label,
+body.dark-mode .timer-task-select label {
+    color: var(--dark-text-secondary);
+}
+
+/* Cards and containers (general) */
 body.dark-mode .material-card,
 body.dark-mode .exam-card,
 body.dark-mode .analytics-card,
-body.dark-mode .timer-card,
-body.dark-mode .agenda-card,
-body.dark-mode .flashcard-set, /* Added flashcard-set */
-body.dark-mode .page-header, /* Ensure page headers adapt */
-body.dark-mode .coming-soon /* For placeholder pages */ {
+body.dark-mode .flashcard-set,
+body.dark-mode .quiz-card /* If you have a .quiz-card */ {
     background-color: var(--dark-bg-secondary);
     box-shadow: 0 4px 6px var(--dark-shadow);
-    border: 1px solid var(--dark-border); /* Optional: add subtle border */
+    border: 1px solid var(--dark-border);
 }
-
-body.dark-mode .stat-card:hover,
 body.dark-mode .material-card:hover,
-body.dark-mode .exam-card:hover {
+body.dark-mode .exam-card:hover,
+body.dark-mode .flashcard-set:hover,
+body.dark-mode .quiz-card:hover {
     background-color: var(--dark-bg-tertiary);
     box-shadow: 0 8px 12px var(--dark-shadow);
 }
@@ -80,17 +157,19 @@ body.dark-mode select {
     color: var(--dark-text-primary);
     border: 1px solid var(--dark-border);
 }
-
 body.dark-mode input:focus,
 body.dark-mode textarea:focus,
 body.dark-mode select:focus {
     border-color: var(--dark-accent-primary);
-    box-shadow: 0 0 0 2px var(--dark-accent-primary-transparent, rgba(76, 201, 240, 0.3)); /* Optional focus ring */
+    box-shadow: 0 0 0 2px var(--dark-accent-primary-transparent);
 }
-
 body.dark-mode ::placeholder {
     color: var(--dark-text-secondary);
     opacity: 0.7;
+}
+body.dark-mode label,
+body.dark-mode .form-group small {
+    color: var(--dark-text-secondary);
 }
 
 /* Upload area */
@@ -99,12 +178,29 @@ body.dark-mode .upload-area {
     border: 2px dashed var(--dark-border);
     color: var(--dark-text-secondary);
 }
-
 body.dark-mode .upload-area:hover,
 body.dark-mode .upload-area.drag-over {
     border-color: var(--dark-accent-primary);
     background-color: var(--dark-hover);
 }
+body.dark-mode .upload-area i,
+body.dark-mode .upload-area svg {
+    color: var(--dark-accent-primary);
+}
+body.dark-mode .upload-area h3 {
+    color: var(--dark-text-primary);
+}
+body.dark-mode .upload-area p {
+    color: var(--dark-text-secondary);
+}
+body.dark-mode .upload-btn { /* Assuming .upload-btn is a class for the button inside */
+    background-color: var(--dark-accent-primary);
+    color: var(--dark-bg-primary);
+}
+body.dark-mode .upload-btn:hover {
+    filter: brightness(1.1);
+}
+
 
 /* Buttons */
 body.dark-mode .btn-primary {
@@ -112,9 +208,9 @@ body.dark-mode .btn-primary {
     color: var(--dark-bg-primary); /* Ensure contrast */
 }
 body.dark-mode .btn-primary:hover {
-    background-color: var(--dark-accent-secondary); /* Slightly different hover */
+    background-color: var(--dark-accent-secondary);
+    filter: brightness(1.1); /* Or a slightly different color */
 }
-
 body.dark-mode .btn-secondary {
     background-color: var(--dark-bg-tertiary);
     color: var(--dark-text-primary);
@@ -127,26 +223,104 @@ body.dark-mode .btn-secondary:disabled {
     background-color: var(--dark-bg-tertiary);
     color: var(--dark-text-secondary);
     opacity: 0.5;
+    border-color: var(--dark-border);
 }
-
-
 body.dark-mode .btn-danger {
     background-color: var(--dark-danger);
-    color: var(--dark-text-primary); /* Ensure contrast */
+    color: var(--dark-text-light); /* Ensure contrast */
 }
 body.dark-mode .btn-danger:hover {
-    background-color: #b7485a; /* Darker red */
+    filter: brightness(0.9);
+}
+body.dark-mode .btn-text {
+    color: var(--dark-accent-primary);
+    background-color: transparent;
+}
+body.dark-mode .btn-text:hover {
+    background-color: var(--dark-hover);
+    color: var(--dark-accent-secondary);
+}
+body.dark-mode .btn-accent { /* e.g., mark as completed */
+    background-color: var(--dark-accent-secondary);
+    color: var(--dark-text-light);
+}
+body.dark-mode .btn-accent:hover {
+    filter: brightness(1.1);
 }
 
-/* Tabs */
-body.dark-mode .material-tabs .tab { /* Assuming this is the class for tabs in material viewer */
+/* Small icon buttons on cards */
+body.dark-mode .delete-material,
+body.dark-mode .delete-exam {
+    background-color: transparent;
+    color: var(--dark-text-secondary);
+    border: none;
+    padding: 5px;
+    border-radius: 50%;
+}
+body.dark-mode .delete-material:hover,
+body.dark-mode .delete-exam:hover {
+    color: var(--dark-danger);
+    background-color: var(--dark-hover);
+}
+body.dark-mode .show-tips-btn {
+    background-color: rgba(0, 0, 0, 0.3); /* Darker, translucent */
+    color: var(--dark-warning);
+    border: none;
+    padding: 5px;
+    border-radius: 50%;
+}
+body.dark-mode .show-tips-btn:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+    color: var(--dark-warning);
+}
+
+
+/* Material Card Specifics */
+body.dark-mode .material-card .material-icon i,
+body.dark-mode .material-card .material-icon svg {
+    color: var(--dark-accent-primary);
+}
+body.dark-mode .material-card .material-info h3 {
+    color: var(--dark-text-primary);
+}
+body.dark-mode .material-card .material-info p,
+body.dark-mode .material-card .material-info small {
+    color: var(--dark-text-secondary);
+}
+body.dark-mode .material-card .material-progress p {
+    color: var(--dark-text-secondary);
+}
+
+/* Exam Card Specifics */
+body.dark-mode .exam-card::before { /* The left accent border */
+    background-color: var(--dark-info); /* Or var(--dark-accent-primary) */
+}
+body.dark-mode .exam-card .exam-info h3 {
+    color: var(--dark-text-primary);
+}
+body.dark-mode .exam-card .exam-info p,
+body.dark-mode .exam-card .exam-info small {
+    color: var(--dark-text-secondary);
+}
+body.dark-mode .exam-card .countdown-container .countdown-value {
+    color: var(--dark-text-primary);
+}
+body.dark-mode .exam-card .countdown-container .countdown-label {
+    color: var(--dark-text-secondary);
+}
+
+
+/* Material Viewer */
+body.dark-mode .material-header h2 { /* If not covered by .page-header */
+    color: var(--dark-text-primary);
+}
+body.dark-mode .material-tabs .tab {
     background-color: var(--dark-bg-tertiary);
     color: var(--dark-text-secondary);
     border-bottom: 2px solid transparent;
 }
-
 body.dark-mode .material-tabs .tab.active {
-    background-color: var(--dark-bg-secondary); /* Or keep it slightly different */
+    background-color: var(--dark-bg-secondary);
     color: var(--dark-accent-primary);
     border-bottom-color: var(--dark-accent-primary);
 }
@@ -154,33 +328,74 @@ body.dark-mode .material-tabs .tab:hover {
     color: var(--dark-accent-primary);
     background-color: var(--dark-hover);
 }
+body.dark-mode .tab-content-container {
+    /* background-color: var(--dark-bg-primary); if it needs its own bg */
+}
+body.dark-mode #summary-content {
+    background-color: var(--dark-bg-secondary);
+    color: var(--dark-text-primary);
+    border: 1px solid var(--dark-border); /* Add border if card-like */
+}
+body.dark-mode #summary-content h2,
+body.dark-mode #summary-content h3,
+body.dark-mode #summary-content h4 {
+    color: var(--dark-text-primary);
+}
+body.dark-mode #summary-content p,
+body.dark-mode #summary-content li {
+    color: var(--dark-text-primary);
+}
+body.dark-mode #notes-editor {
+    background-color: var(--dark-bg-tertiary);
+    color: var(--dark-text-primary);
+    border: 1px solid var(--dark-border);
+}
+body.dark-mode .pdf-navigation button { /* Assuming buttons for PDF nav */
+    color: var(--dark-text-primary);
+    background-color: var(--dark-bg-tertiary);
+}
+body.dark-mode .pdf-navigation button:hover {
+    background-color: var(--dark-hover);
+}
 
 
 /* Progress bars */
 body.dark-mode .progress-bar {
     background-color: var(--dark-bg-tertiary);
+    border: 1px solid var(--dark-border); /* Add border for definition */
 }
-
 body.dark-mode .progress {
     background-color: var(--dark-accent-primary);
 }
 
-/* Material content (tab panes) */
-body.dark-mode .tab-content { /* Generic tab content */
-    background-color: var(--dark-bg-secondary); /* Or keep it same as page background */
-}
-
-body.dark-mode #notes-editor { /* Specific ID */
+/* Quiz */
+body.dark-mode .quiz-info {
+    color: var(--dark-text-secondary);
     background-color: var(--dark-bg-tertiary);
+    border: 1px solid var(--dark-border);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+}
+body.dark-mode .quiz-info i {
+    color: var(--dark-info);
+}
+body.dark-mode #active-quiz .back-btn {
+    color: var(--dark-accent-primary);
+}
+body.dark-mode #active-quiz .back-btn:hover {
+    background-color: var(--dark-hover);
+}
+body.dark-mode #quiz-title,
+body.dark-mode #question-counter {
     color: var(--dark-text-primary);
+}
+body.dark-mode .question-container {
+    background-color: var(--dark-bg-secondary); /* If it's a card */
     border: 1px solid var(--dark-border);
 }
-
-/* Quiz elements */
-body.dark-mode .question-container {
-    background-color: var(--dark-bg-secondary); /* If it's a card-like element */
+body.dark-mode #question-text {
+    color: var(--dark-text-primary);
 }
-
 body.dark-mode .option {
     background-color: var(--dark-bg-tertiary);
     border: 1px solid var(--dark-border);
@@ -188,39 +403,147 @@ body.dark-mode .option {
 }
 body.dark-mode .option:hover {
     background-color: var(--dark-hover);
+    border-left-color: var(--dark-accent-primary); /* From styles.css */
 }
-
 body.dark-mode .option.selected {
-    background-color: var(--dark-accent-secondary); /* Using the other accent for selection */
-    color: #fff; /* Ensure contrast */
+    background-color: var(--dark-accent-secondary);
+    color: var(--dark-text-light);
     border-color: var(--dark-accent-secondary);
+    border-left-color: var(--dark-accent-secondary); /* Ensure consistency */
 }
-
 body.dark-mode .option.correct {
     background-color: var(--dark-success);
-    color: var(--dark-bg-primary); /* Ensure contrast */
+    color: var(--dark-bg-primary);
     border-color: var(--dark-success);
 }
-
 body.dark-mode .option.incorrect {
     background-color: var(--dark-danger);
-    color: #fff; /* Ensure contrast */
+    color: var(--dark-text-light);
     border-color: var(--dark-danger);
 }
+body.dark-mode .result-card {
+    background-color: var(--dark-bg-tertiary);
+    border: 1px solid var(--dark-border);
+}
+body.dark-mode .result-card h3 {
+    color: var(--dark-text-secondary);
+}
+body.dark-mode .result-card .result-value {
+    color: var(--dark-text-primary);
+}
+body.dark-mode .result-card i.fa-check-circle { color: var(--dark-success); }
+body.dark-mode .result-card i.fa-times-circle { color: var(--dark-danger); }
+body.dark-mode .result-card i.fa-star { color: var(--dark-warning); }
+body.dark-mode #review-questions .question-review { /* Assuming this class */
+    background-color: var(--dark-bg-tertiary);
+    border: 1px solid var(--dark-border);
+    color: var(--dark-text-primary);
+}
 
-/* Chat elements */
-body.dark-mode .chat-container {
+
+/* Flashcards */
+body.dark-mode #flashcard-sets-view h3,
+body.dark-mode #flashcard-set-editor-view h3,
+body.dark-mode #flashcard-study-view h3 {
+    color: var(--dark-text-primary);
+}
+body.dark-mode .flashcard {
+    background-color: var(--dark-bg-tertiary);
+    color: var(--dark-text-primary);
+    box-shadow: 0 4px 8px var(--dark-shadow);
+    border: 1px solid var(--dark-border);
+}
+body.dark-mode .flashcard-edit-item {
+    background-color: var(--dark-bg-tertiary);
+    border: 1px solid var(--dark-border);
+}
+body.dark-mode .flashcard-edit-item textarea {
     background-color: var(--dark-bg-secondary);
+    color: var(--dark-text-primary);
+    border: 1px solid var(--dark-border);
+}
+body.dark-mode .editor-info-message { /* From existing dark-mode.css */
+    background-color: var(--dark-info-bg);
+    color: var(--dark-info-text);
+    border: 1px solid var(--dark-info-border);
+}
+body.dark-mode .editor-info-message i {
+    color: var(--dark-info-text);
+}
+body.dark-mode .mastery-bar {
+    background-color: var(--dark-bg-tertiary);
+}
+body.dark-mode .mastery-progress {
+    background-color: var(--dark-accent-primary);
+}
+
+
+/* Chat */
+body.dark-mode .chat-container { /* This is likely the main wrapper for your chat page/section */
+    background-color: var(--dark-bg-secondary);
+    border: 1px solid var(--dark-border);
+    /* Ensure height and display properties allow it to fill its intended space */
+}
+
+/* ADD THIS: If your messages are inside another specific div, style it too */
+body.dark-mode #chat-messages, /* Common ID for message display area */
+body.dark-mode .chat-messages-area /* Common class for message display area */ {
+    background-color: var(--dark-bg-secondary); /* Or var(--dark-bg-primary) if you want it same as page bg */
+    color: var(--dark-text-primary);
 }
 
 body.dark-mode .message-bubble {
     background-color: var(--dark-bg-tertiary);
     color: var(--dark-text-primary);
+    box-shadow: 0 1px 2px var(--dark-shadow); /* Add a subtle shadow */
 }
 
 body.dark-mode .user-message .message-bubble {
-    background-color: var(--dark-accent-secondary); /* User messages with accent */
-    color: #fff; /* Ensure contrast */
+    background-color: var(--dark-accent-secondary);
+    color: var(--dark-text-light);
+}
+
+/* If you have a separate class for AI messages */
+body.dark-mode .ai-message .message-bubble {
+    background-color: var(--dark-bg-tertiary); /* Or a slightly different shade */
+    color: var(--dark-text-primary);
+}
+
+body.dark-mode .message-bubble strong { /* Make bold text stand out */
+    color: var(--dark-text-primary);
+}
+
+body.dark-mode .message-bubble code { /* Styling for code blocks in chat */
+    background-color: var(--dark-bg-primary); /* Darker than bubble */
+    color: var(--dark-accent-primary);
+    padding: 2px 5px;
+    border-radius: 3px;
+    border: 1px solid var(--dark-border);
+}
+body.dark-mode .message-bubble pre { /* Styling for preformatted text (often wraps code) */
+    background-color: var(--dark-bg-primary);
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid var(--dark-border);
+    overflow-x: auto;
+}
+body.dark-mode .message-bubble pre code {
+    border: none; /* Remove border from code inside pre if pre has one */
+    padding: 0;
+    background-color: transparent;
+}
+
+
+body.dark-mode .message-bubble a { /* Links inside chat bubbles */
+    color: var(--dark-accent-primary);
+}
+body.dark-mode .message-bubble a:hover {
+    color: var(--dark-accent-secondary);
+}
+
+body.dark-mode .chat-input-container { /* If you have a wrapper for the input and button */
+    background-color: var(--dark-bg-secondary);
+    border-top: 1px solid var(--dark-border);
 }
 
 body.dark-mode .chat-input textarea {
@@ -228,19 +551,58 @@ body.dark-mode .chat-input textarea {
     border: 1px solid var(--dark-border);
     color: var(--dark-text-primary);
 }
+body.dark-mode .chat-input textarea:focus {
+    border-color: var(--dark-accent-primary);
+    box-shadow: 0 0 0 2px var(--dark-accent-primary-transparent);
+}
+
+body.dark-mode .chat-input button { /* Send button */
+    background-color: var(--dark-accent-primary);
+    color: var(--dark-bg-primary);
+    border: none;
+}
+body.dark-mode .chat-input button:hover {
+    filter: brightness(1.1);
+}
+body.dark-mode .chat-input button:disabled {
+    background-color: var(--dark-hover);
+    color: var(--dark-text-secondary);
+}
+
+
+body.dark-mode .chat-tips {
+    color: var(--dark-text-secondary);
+    background-color: var(--dark-bg-tertiary);
+    border-top: 1px solid var(--dark-border);
+}
+body.dark-mode .chat-tips i {
+    color: var(--dark-info);
+}
+body.dark-mode .chat-tips ul li {
+    color: var(--dark-text-secondary);
+}
+
+/* If there's a header within the chat page */
+body.dark-mode #chat-page .page-header h2, /* Example specific to chat page */
+body.dark-mode .chat-header h2 /* More generic chat header */ {
+    color: var(--dark-text-primary);
+}
+
 
 /* Modals */
-body.dark-mode .modal { /* The backdrop */
-    background-color: rgba(0, 0, 0, 0.8); /* Darker backdrop */
+body.dark-mode .modal {
+    background-color: rgba(0, 0, 0, 0.8);
 }
 body.dark-mode .modal-content {
     background-color: var(--dark-bg-secondary);
     box-shadow: 0 8px 16px var(--dark-shadow);
     border: 1px solid var(--dark-border);
 }
-
 body.dark-mode .modal-header {
     border-bottom: 1px solid var(--dark-border);
+    color: var(--dark-text-primary);
+}
+body.dark-mode .modal-header h2 {
     color: var(--dark-text-primary);
 }
 body.dark-mode .modal-header .close-modal {
@@ -249,11 +611,41 @@ body.dark-mode .modal-header .close-modal {
 body.dark-mode .modal-header .close-modal:hover {
     color: var(--dark-text-primary);
 }
-
-
+body.dark-mode .modal-body {
+    color: var(--dark-text-primary);
+}
+body.dark-mode .modal-body p {
+    color: var(--dark-text-primary); /* Ensure paragraphs inside modal body are styled */
+}
 body.dark-mode .modal-footer {
     border-top: 1px solid var(--dark-border);
 }
+body.dark-mode .study-tips-modal .modal-body h3 {
+    color: var(--dark-accent-primary);
+}
+body.dark-mode .study-tips-modal .modal-body .highlight {
+    background-color: rgba(76, 201, 240, 0.2); /* Transparent accent */
+    color: var(--dark-accent-primary);
+}
+body.dark-mode .study-tips-modal .modal-body .emphasis {
+    color: var(--dark-accent-secondary); /* Or another distinct color */
+}
+body.dark-mode .record-timer {
+    color: var(--dark-text-primary);
+}
+body.dark-mode .recordings-list {
+    color: var(--dark-text-secondary);
+}
+body.dark-mode .recordings-list audio {
+    filter: invert(1) hue-rotate(180deg);
+}
+body.dark-mode .loading-spinner p {
+    color: var(--dark-text-primary);
+}
+body.dark-mode .loading-spinner i {
+    color: var(--dark-accent-primary);
+}
+
 
 /* Notifications */
 body.dark-mode .notification {
@@ -263,22 +655,11 @@ body.dark-mode .notification {
     border-left-width: 4px;
     border-left-style: solid;
 }
+body.dark-mode .notification.success { border-left-color: var(--dark-success); }
+body.dark-mode .notification.error { border-left-color: var(--dark-danger); }
+body.dark-mode .notification.warning { border-left-color: var(--dark-warning); }
+body.dark-mode .notification.info { border-left-color: var(--dark-info); }
 
-body.dark-mode .notification.success {
-    border-left-color: var(--dark-success);
-}
-
-body.dark-mode .notification.error {
-    border-left-color: var(--dark-danger);
-}
-
-body.dark-mode .notification.warning {
-    border-left-color: var(--dark-warning);
-}
-
-body.dark-mode .notification.info {
-    border-left-color: var(--dark-info);
-}
 body.dark-mode .notification .close-notification {
     color: var(--dark-text-secondary);
 }
@@ -286,28 +667,11 @@ body.dark-mode .notification .close-notification:hover {
     color: var(--dark-text-primary);
 }
 
-
-/* PDF viewer */
-body.dark-mode .pdf-page canvas {
-    /* PDFs are often light, inverting them can be complex.
-       Consider a subtle border or background for the container if needed. */
-}
-body.dark-mode .pdf-controls { /* Assuming you have controls */
-    background-color: var(--dark-bg-tertiary);
-    box-shadow: 0 2px 8px var(--dark-shadow);
-}
-body.dark-mode .pdf-controls button {
-    color: var(--dark-text-primary);
-}
-body.dark-mode .pdf-controls button:hover {
-    background-color: var(--dark-hover);
-}
-
-
-/* Agenda items */
-body.dark-mode #agenda-container { /* From styles.css */
+/* Agenda */
+body.dark-mode #agenda-container {
     background-color: var(--dark-bg-secondary);
-    box-shadow: var(--shadow-soft); /* This variable needs to be dark mode aware or overridden */
+    box-shadow: 0 4px 6px var(--dark-shadow); /* Use consistent shadow */
+    border: 1px solid var(--dark-border);
 }
 body.dark-mode .agenda-header {
     border-bottom: 1px solid var(--dark-border);
@@ -315,97 +679,92 @@ body.dark-mode .agenda-header {
 body.dark-mode .agenda-header p {
     color: var(--dark-text-primary);
 }
-
-body.dark-mode .agenda-day {
-    /* border-bottom: 1px solid var(--dark-border); */ /* If items have individual borders */
-}
-
 body.dark-mode .agenda-day h3 {
     color: var(--dark-accent-primary);
 }
-body.dark-mode .agenda-items li { /* Assuming list items */
-    background-color: var(--dark-bg-tertiary); /* If they have their own background */
-    border: 1px solid var(--dark-border);
+body.dark-mode .agenda-day li {
+    background-color: var(--dark-bg-tertiary);
+    border: 1px solid var(--dark-border); /* Add border for definition */
     color: var(--dark-text-secondary);
+    margin-bottom: var(--spacing-xs);
+    border-radius: var(--border-radius-sm);
+}
+body.dark-mode .agenda-day li.completed {
+    color: var(--dark-text-muted, #777); /* Use a muted color */
+    text-decoration-color: var(--dark-text-muted, #777);
+    background-color: var(--dark-bg-secondary); /* Slightly different for completed */
+}
+body.dark-mode .agenda-day li i,
+body.dark-mode .agenda-day li svg {
+    color: var(--dark-success);
+}
+body.dark-mode .urgent-message {
+    background-color: rgba(207, 102, 121, 0.2); /* Transparent danger */
+    border-left-color: var(--dark-danger);
+    color: var(--dark-text-primary);
 }
 
 
-/* Empty states */
+/* Empty states & Coming Soon */
 body.dark-mode .empty-state,
-body.dark-mode .coming-soon p /* For placeholder pages */ {
+body.dark-mode .coming-soon p {
     color: var(--dark-text-secondary);
+}
+body.dark-mode .coming-soon { /* The container for coming soon */
+    background-color: var(--dark-bg-secondary);
+    border: 1px solid var(--dark-border);
 }
 body.dark-mode .coming-soon i {
     color: var(--dark-accent-primary);
 }
-
-
-/* Flashcards */
-body.dark-mode .flashcard-set { /* Already covered by .card rule */
-    /* background-color: var(--dark-bg-secondary); */
-}
-
-body.dark-mode .mastery-bar {
-    background-color: var(--dark-bg-tertiary);
-}
-
-body.dark-mode .mastery-progress {
-    background-color: var(--dark-accent-primary);
-}
-
-body.dark-mode .flashcard-edit-item {
-    background-color: var(--dark-bg-tertiary);
-    border: 1px solid var(--dark-border);
-}
-body.dark-mode .flashcard-edit-item textarea {
-    background-color: var(--dark-bg-secondary); /* Slightly different from parent */
+body.dark-mode .coming-soon h3 {
     color: var(--dark-text-primary);
-    border: 1px solid var(--dark-border);
-}
-
-/* Dark mode for .editor-info-message */
-body.dark-mode .editor-info-message {
-    background-color: var(--dark-info-bg);
-    color: var(--dark-info-text);
-    border: 1px solid var(--dark-info-border);
-}
-body.dark-mode .editor-info-message i {
-    color: var(--dark-info-text); /* Ensure icon color matches */
 }
 
 
-/* Theme Toggle Button Dark Mode Styles */
+/* Theme Toggle Button */
 body.dark-mode .theme-toggle {
     color: var(--dark-text-secondary);
+    background-color: var(--dark-bg-tertiary); /* Give it a slight background */
+    border: 1px solid var(--dark-border);
 }
-
 body.dark-mode .theme-toggle:hover {
     background-color: var(--dark-hover);
     color: var(--dark-accent-primary);
 }
-
 body.dark-mode .theme-toggle .fa-sun {
-    display: inline-block; /* Sun icon visible in dark mode */
+    display: inline-block;
 }
-
 body.dark-mode .theme-toggle .fa-moon {
-    display: none; /* Moon icon hidden in dark mode */
+    display: none;
 }
 
-/* Ensure any other specific elements are covered */
-/* For example, if you have specific link colors */
+/* General Links */
 body.dark-mode a {
     color: var(--dark-accent-primary);
 }
 body.dark-mode a:hover {
     color: var(--dark-accent-secondary);
+    text-decoration: underline;
 }
 
-/* Fallback for elements not explicitly styled, if needed */
-body.dark-mode div, body.dark-mode span, body.dark-mode p, body.dark-mode li, body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode h4, body.dark-mode h5, body.dark-mode h6 {
-    /* border-color: var(--dark-border); /* Be careful with this, might override intended borders */
+/* Fallback for generic text elements if needed, but prefer specific styling */
+body.dark-mode p,
+body.dark-mode li,
+body.dark-mode span,
+body.dark-mode small {
+    /* color: var(--dark-text-primary); /* This might be too broad, ensure it doesn't override intended secondary/muted text */
 }
 
-/* Remove redundant/conflicting icon rules from the end if they existed */
-/* The rules above for .theme-toggle .fa-sun and .fa-moon are sufficient */
+/* Ensure all borders that were light (e.g., #e0e0e0) are updated */
+body.dark-mode hr { /* Example if you use hr tags */
+    border-color: var(--dark-border);
+}
 
+/* Chart.js - Note: Chart.js often requires JS configuration for full dark mode theming of chart elements themselves */
+body.dark-mode .chart-container {
+    /* background-color: var(--dark-bg-secondary); /* If the container needs a bg */
+}
+body.dark-mode .analytics-card .analytics-header h3 {
+    color: var(--dark-text-primary);
+}
