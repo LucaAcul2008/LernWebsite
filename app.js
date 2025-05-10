@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
     wrongQuestions: [],
     apiEndpoint: "http://localhost:3000", // Points to your local Ollama server
     db: null, // Für die IndexedDB Instanz
+    _eventListenersInitialized: false, // Add this flag
 
     init: function () {
       console.log("App init: Initialisiere App...");
@@ -32,7 +33,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
       this.updateUI();
       this.showPage("dashboard");
-      this.setupEventListeners();
+      this.setupEventListeners(); // Called in init
       this.updatePomodoroTasksDropdown();
       console.log("App init: App Initialisierung abgeschlossen.");
     },
@@ -505,6 +506,7 @@ document.addEventListener("DOMContentLoaded", function () {
           console.error("Error loading PDFs from IndexedDB:", err);
         });
     },
+    
 
     
 
@@ -655,31 +657,35 @@ document.addEventListener("DOMContentLoaded", function () {
     },
 
     setupEventListeners: function () {
-      console.log("setupEventListeners: Initialisiere Event Listener...");
+      if (this._eventListenersInitialized) {
+        console.warn("setupEventListeners: Listeners already initialized. Skipping to prevent duplicates.");
+        // debugger; // You can uncomment this line to pause execution here and inspect
+        return; // This is the crucial guard
+      }
+      console.log("setupEventListeners: Initializing listeners for the first time.");
+
       const self = this; // Sichere Referenz auf das 'app' Objekt
 
       // Navigation
       document.querySelectorAll(".nav-links li").forEach((item) => {
         item.addEventListener("click", function () {
-          // Normale Funktion, um 'this' als Element zu haben, falls benötigt
-          const page = this.getAttribute("data-page"); // 'this' ist hier das geklickte li-Element
-          self.showPage(page); // Rufe showPage mit der gesicherten 'self' Referenz auf
+          const page = this.getAttribute("data-page");
+          self.showPage(page);
         });
       });
 
+      // Button zum Neugenerieren der Zusammenfassung (im Material-Viewer)
       const regenerateSummaryBtn =
         document.getElementById("regenerate-summary");
       if (regenerateSummaryBtn) {
         regenerateSummaryBtn.addEventListener("click", () => {
-          // Arrow Function behält 'this' als 'app' Objekt
           if (this.currentMaterial) {
-            delete this.currentMaterial.summary; // Summary aus dem Speicher löschen
-            // Optional: Summary auch aus IndexedDB löschen, falls dort separat gespeichert
-            if (this.db && typeof this.deleteSummaryFromIndexedDB === 'function') { // Prüfen ob DB und Funktion existieren
+            delete this.currentMaterial.summary;
+            if (this.db && typeof this.deleteSummaryFromIndexedDB === 'function') {
                 this.deleteSummaryFromIndexedDB(this.currentMaterial.id)
                     .then(() => console.log("Zusammenfassung aus IndexedDB gelöscht."))
                     .catch(err => console.error("Fehler beim Löschen der Zusammenfassung aus IDB:", err));
-            } else if (this.db) { // Fallback, falls deleteSummaryFromIndexedDB nicht existiert, aber summaries Store schon
+            } else if (this.db) {
                  try {
                     const transaction = this.db.transaction(["summaries"], "readwrite");
                     const store = transaction.objectStore("summaries");
@@ -688,7 +694,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     console.error("Fehler beim Löschen der Zusammenfassung aus IDB (Fallback):", e);
                 }
             }
-
             if (typeof this.generateSummary === "function") {
               this.generateSummary(this.currentMaterial);
             } else {
@@ -698,10 +703,6 @@ document.addEventListener("DOMContentLoaded", function () {
             }
           }
         });
-      } else {
-        console.warn(
-          "setupEventListeners WARNUNG: Button 'regenerate-summary' nicht gefunden."
-        );
       }
 
       // PDF Upload
@@ -710,6 +711,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (uploadArea && pdfUpload) {
         uploadArea.addEventListener("click", () => {
+          console.log("Upload area clicked, triggering pdfUpload.click()"); // Debug log
           pdfUpload.click();
         });
 
@@ -740,6 +742,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         pdfUpload.addEventListener("change", (e) => {
+          console.log("pdfUpload change event triggered"); // Debug log
           if (e.target.files.length > 0) {
             const file = e.target.files[0];
             if (file.type === "application/pdf") {
@@ -752,6 +755,8 @@ document.addEventListener("DOMContentLoaded", function () {
               );
             }
           }
+          // Reset the file input's value to allow selecting the same file again if needed
+          e.target.value = null;
         });
       } else {
         console.warn(
@@ -793,7 +798,6 @@ document.addEventListener("DOMContentLoaded", function () {
               );
             }
 
-            // Wenn der Summary-Tab geklickt wird und noch keine Zusammenfassung da ist UND keine gerade generiert wird
             if (
               tabId === "summary" &&
               this.currentMaterial &&
@@ -819,9 +823,9 @@ document.addEventListener("DOMContentLoaded", function () {
         );
       }
 
-      // Generate summary button (im Material Header - falls es einen gibt, sonst den im Summary Tab)
+      // Generate summary button (im Material Header)
       const generateSummaryHeaderBtn = document.getElementById(
-        "generate-summary-btn" // ID des Buttons im Header, falls vorhanden
+        "generate-summary-btn"
       );
       if (generateSummaryHeaderBtn) {
         generateSummaryHeaderBtn.addEventListener("click", () => {
@@ -835,8 +839,6 @@ document.addEventListener("DOMContentLoaded", function () {
             }
           }
         });
-      } else {
-        // console.warn("Button 'generate-summary-btn' im Header nicht gefunden."); // Kann ignoriert werden, wenn der Button im Tab ist
       }
 
       // Generate quiz button (im Material Header)
@@ -860,7 +862,6 @@ document.addEventListener("DOMContentLoaded", function () {
       );
       if (generateFlashcardsAIBtn) {
         generateFlashcardsAIBtn.addEventListener("click", () => {
-          console.log("AI Lernkarten Button geklickt!"); // Test-Log
           if (this.currentMaterial) {
             this.generateAIFlashcards(this.currentMaterial);
           } else {
@@ -923,7 +924,7 @@ document.addEventListener("DOMContentLoaded", function () {
               } markiert!`,
               "success"
             );
-            this.updateUI(); // UI aktualisieren, um Fortschrittsbalken etc. zu ändern
+            this.updateUI();
           }
         });
       } else {
@@ -950,16 +951,14 @@ document.addEventListener("DOMContentLoaded", function () {
       const backToQuizzesBtn = document.getElementById("back-to-quizzes");
       if (backToQuizzesBtn) {
         backToQuizzesBtn.addEventListener("click", () => {
-          // Logik, um zur Quizliste zurückzukehren
-          this.showPage('quizzes'); // Annahme: 'quizzes' ist die ID der Seite mit der Quizliste
-                                     // und active-quiz/quiz-results werden innerhalb von showPage('quizzes') korrekt zurückgesetzt
+          this.showPage('quizzes');
           const quizResults = document.getElementById("quiz-results");
-          const quizList = document.getElementById("quiz-list"); // Hauptansicht der Quizseite
+          const quizList = document.getElementById("quiz-list");
           const activeQuizView = document.getElementById("active-quiz");
 
           if (quizResults) quizResults.classList.add("hidden");
           if (activeQuizView) activeQuizView.classList.add("hidden");
-          if (quizList) quizList.classList.remove("hidden"); // Stelle sicher, dass die Liste sichtbar ist
+          if (quizList) quizList.classList.remove("hidden");
         });
       }
       const exitQuizBtn = document.getElementById("exit-quiz");
@@ -998,9 +997,9 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         });
       }
-      console.log(
-        "setupEventListeners: Event Listener Initialisierung abgeschlossen."
-      );
+      
+      this._eventListenersInitialized = true; // IMPORTANT: Set the flag to true at the VERY END of the function
+      console.log("setupEventListeners: Listeners initialized and flag set to true.");
     },
 
     updateUI: function () {
@@ -2888,7 +2887,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }, 300);
     },
 
-    getIconForNotificationType: function (type) { // Beispiel für die letzte Methode
+    getIconForNotificationType: function (type) { // Example of the last method in appCoreLogic
       switch (type) {
         case "success": return "fa-check-circle";
         case "error": return "fa-exclamation-circle";
@@ -2896,11 +2895,9 @@ document.addEventListener("DOMContentLoaded", function () {
         case "info": default: return "fa-info-circle";
       }
     },
+  }; // End of appCoreLogic
 
-    
-  };
-
-  if (typeof window.app === 'undefined') {
+ if (typeof window.app === 'undefined') {
     console.log("DOMContentLoaded (app.js): window.app nicht vorhanden, erstelle es.");
     window.app = {};
   } else {
@@ -2910,110 +2907,57 @@ document.addEventListener("DOMContentLoaded", function () {
   Object.assign(window.app, appCoreLogic);
   console.log("DOMContentLoaded (app.js): window.app wurde mit appCoreLogic erweitert.");
 
-  // Enhance showPage function to handle alternative IDs
-  // Stelle sicher, dass dies window.app.showPage modifiziert und VOR init() aufgerufen wird.
+  // Enhance window.app.showPage function to handle alternative IDs and missing pages
   if (window.app && typeof window.app.showPage === 'function') {
-    const originalShowPageGlobal = window.app.showPage; // Korrekt von window.app holen
-    window.app.showPage = function (pageId) { // Korrekt an window.app zuweisen
-      console.log(`Attempting to show page (enhanced): ${pageId}`);
-      let currentPageId = pageId;
-      if (pageId === "material-view") {
-        console.log("Redirecting to material-viewer");
+    const originalShowPageGlobal = window.app.showPage;
+    window.app.showPage = function (pageIdToShow) {
+      console.log(`Attempting to show page (enhanced global): ${pageIdToShow}`);
+      let currentPageId = pageIdToShow;
+
+      // Handle material view ID inconsistency
+      if (currentPageId === "material-view") {
+        console.log("Redirecting global showPage to material-viewer");
         currentPageId = "material-viewer";
       }
-      const page = document.getElementById(currentPageId);
-      if (!page) {
+
+      // Check if page exists before trying to show it; if not, create a placeholder
+      const pageElement = document.getElementById(currentPageId);
+      if (!pageElement) {
         console.error(`Page with ID "${currentPageId}" not found. Adding safety div.`);
         const placeholder = document.createElement("div");
         placeholder.id = currentPageId;
-        placeholder.classList.add("page");
+        placeholder.classList.add("page"); // Ensure it's treated as a page
         placeholder.innerHTML = `
           <div class="error-message">
             <i class="fas fa-exclamation-triangle"></i>
-            <p>Fehler: Diese Seite (${currentPageId}) konnte nicht geladen werden.</p>
-            <button class="btn-primary" onclick="window.app.showPage('dashboard')">Zurück zum Dashboard</button>
+            <p>Fehler: Diese Seite konnte nicht geladen werden.</p>
+            <button class="btn-primary" onclick="window.app.showPage('dashboard')">
+              Zurück zum Dashboard
+            </button>
           </div>`;
         const mainContent = document.querySelector(".main-content");
-        if (mainContent) mainContent.appendChild(placeholder);
-        // Hier könntest du entscheiden, ob originalShowPageGlobal trotzdem aufgerufen werden soll
-        // oder ob die Anzeige des Placeholders ausreicht.
-        // Für dieses Beispiel rufen wir originalShowPageGlobal auf, damit die restliche Logik (z.B. active class auf nav) ausgeführt wird.
+        if (mainContent) {
+          // Remove existing placeholder for this ID if any, before adding
+          const existingPlaceholder = mainContent.querySelector(`.page#${CSS.escape(currentPageId)}`);
+          if (existingPlaceholder) {
+            existingPlaceholder.remove();
+          }
+          mainContent.appendChild(placeholder);
+        }
       }
-      return originalShowPageGlobal.call(window.app, pageId); // Rufe die ursprüngliche Funktion mit korrektem Kontext auf
+      // Call the original function from appCoreLogic (now on window.app)
+      // It should handle making 'currentPageId' visible and hiding others.
+      return originalShowPageGlobal.call(window.app, currentPageId);
     };
-    console.log("DOMContentLoaded (app.js): showPage wurde erweitert.");
+    console.log("DOMContentLoaded (app.js): window.app.showPage wurde erweitert (mit Placeholder-Logik).");
   } else {
     console.error("DOMContentLoaded (app.js): window.app.showPage ist keine Funktion oder window.app nicht definiert, kann nicht erweitert werden.");
   }
 
-  // Initialisiere die App EINMAL, nachdem window.app vollständig konfiguriert ist.
+  // Initialize the App ONCE, after window.app is fully configured.
   if (window.app && typeof window.app.init === 'function') {
     window.app.init();
   } else {
     console.error("DOMContentLoaded (app.js): App-Kern konnte nicht initialisiert werden. window.app.init ist nicht verfügbar.");
   }
-  
-
-  // Enhance showPage function to handle alternative IDs
-  const originalShowPage = app.showPage;
-  app.showPage = function (pageId) {
-    console.log(`Attempting to show page: ${pageId}`);
-
-    // Handle material view ID inconsistency
-    if (pageId === "material-view") {
-      console.log("Redirecting to material-viewer");
-      pageId = "material-viewer";
-    }
-
-    // Check if page exists before trying to show it
-    const page = document.getElementById(pageId);
-    if (!page) {
-      console.error(`Page with ID "${pageId}" not found. Adding safety div.`);
-
-      // Create a placeholder element to prevent errors
-      const placeholder = document.createElement("div");
-      placeholder.id = pageId;
-      placeholder.classList.add("page");
-      placeholder.innerHTML = `
-      <div class="error-message">
-        <i class="fas fa-exclamation-triangle"></i>
-        <p>Fehler: Diese Seite konnte nicht geladen werden.</p>
-        <button class="btn-primary" onclick="app.showPage('dashboard')">
-          Zurück zum Dashboard
-        </button>
-      </div>
-    `;
-
-      // Add to main content
-      const mainContent = document.querySelector(".main-content");
-      if (mainContent) {
-        mainContent.appendChild(placeholder);
-      }
-
-      // Now we can proceed with showing the page
-      return originalShowPage.call(this, pageId);
-    }
-
-    return originalShowPage.call(this, pageId);
-  };
-  // // Initialize the application
-  // window.app.init();
-
-// Stelle sicher, dass window.app existiert und füge die appCoreProperties hinzu/überschreibe sie.
-  // Dies bewahrt andere Eigenschaften, die möglicherweise von anderen Skripten (wie flashcards.js) hinzugefügt wurden.
-  if (typeof window.app === 'undefined') {
-    console.log("DOMContentLoaded (app.js): window.app nicht vorhanden, erstelle es.");
-    window.app = {};
-  }
-  Object.assign(window.app, appCoreProperties);
-
-  // Initialisiere die App
-  if (window.app && typeof window.app.init === 'function') {
-    window.app.init();
-  } else {
-    console.error("DOMContentLoaded (app.js): App-Kern konnte nicht initialisiert werden. window.app:", window.app);
-  }
-
-
-
-});
+}); // This is the single, correct closing brace for the DOMContentLoaded event listener.

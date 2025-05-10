@@ -1,17 +1,16 @@
 {
-    "name": "Study Companion",
-    "short_name": "StudyComp",
-    "description": "Your personal study assistant",
-    "start_url": "/index.html",
-    "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#4361ee",
-    "icons": [
-      {
-        "src": "icons/icon-192.png",
-        "sizes": "192x192",
-        "type": "image/png",
-        "purpose": "any maskable"
-      }
-    ]
-  }
+  "name": "Study Companion",
+  "short_name": "StudyComp",
+  "description": "Your personal study assistant",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4361ee",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
